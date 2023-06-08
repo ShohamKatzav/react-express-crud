@@ -4,12 +4,12 @@ import axios from "axios";
 function List() {
 
     const baseUrl = "/api/v1";
-    const [data, SetData] = useState("");
+    const [data, SetData] = useState([]);
 
 
     const getData = () => {
         axios
-            .get(baseUrl)
+            .get(baseUrl + "/todos")
             .then((res) => {
                 SetData(res.data);
             })
@@ -21,7 +21,13 @@ function List() {
     useEffect(getData, []);
 
     return (
-        <div>{data}</div>
+        <>
+            { data.todos &&
+                data.todos.map((item, index) =>
+                    <li key={index}>{item.todo}</li>
+                )
+            }
+        </>
     );
 }
 

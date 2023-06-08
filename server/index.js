@@ -3,8 +3,10 @@ const express = require("express"),
   app = express();
 
 
-app.get("/api/v1/", (req, res) => {
-  res.send("lalalala");
+app.get("/api/v1/todos", (req, resp) => {
+  fetch('https://dummyjson.com/todos?limit=5')
+    .then(res => res.json())
+    .then(json => resp.send(json));
 });
 
 
