@@ -21,9 +21,9 @@ function List() {
     useEffect(getData, []);
 
     return (
-        <>
-            { data.todos &&
-                data.todos.map((item, index) =>
+        <> 
+            { data &&
+                data.map((item, index) =>
                     <li key={index}>{item.todo}</li>
                 )
             }
