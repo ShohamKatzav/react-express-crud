@@ -42,7 +42,8 @@ async function initCollection(collection) {
    fetch('https://dummyjson.com/todos?limit=6')
     .then(async res => {
       documents = await res.json();
-      const result = await collection.insertMany(documents.todos, function (err) {
+      const todoValues = documents.todos.map(x => ({todo: x.todo, completed: x.completed}));
+      const result = await collection.insertMany(todoValues, function (err) {
         if (err) {
           console.error('Failed to insert document:', err);
           return;

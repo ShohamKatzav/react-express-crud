@@ -18,15 +18,30 @@ function List() {
             });
     }
 
+    const addTodo = () => {
+        var todoValue = document.getElementById("addTodoInput").value;
+        axios
+            .post(baseUrl + "/todos", { value: todoValue })
+            .then((res) => {
+                const newData = [...data, res.data]
+                SetData(newData);
+            })
+            .catch((err) => {
+                console.error(err);
+            });
+    }
+
     useEffect(getData, []);
 
     return (
-        <> 
-            { data &&
+        <>
+            {data &&
                 data.map((item, index) =>
                     <li key={index}>{item.todo}</li>
                 )
             }
+            <input type="text" name="name" id="addTodoInput" />
+            <button onClick={addTodo} >Add Todo</button>
         </>
     );
 }

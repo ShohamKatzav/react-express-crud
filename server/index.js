@@ -2,6 +2,9 @@ const express = require("express"),
   PORT = 5000,
   app = express();
 
+const bodyParser = require('body-parser');
+app.use(bodyParser.json());
+
 const {db, closeMongoClient} = require('./mongodb')
 
 
@@ -14,6 +17,18 @@ app.get("/api/v1/todos", async (req, res) => {
     console.error('Failed to retrieve todos:', err);
     res.status(500).send('Internal Server Error');
   }
+});
+
+app.post("/api/v1/todos", async (req, res) => {
+  const body = req.body.value;
+  const newDoc = {todo: body}
+  await db.collection('todocollection').insertOne(newDoc, function (err) {
+    if (err) {
+      console.error('Failed to insert document:', err);
+      return;
+    }
+  });
+  res.send(newDoc);
 });
 
 
