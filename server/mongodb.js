@@ -1,4 +1,4 @@
-const { MongoClient } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const url = "mongodb://localhost:27017/";
 const dbName = "tododatabase";
 const client = new MongoClient(url);
@@ -29,10 +29,6 @@ async function main() {
   catch (e) {
     console.error(e);
   }
-  finally {
-    console.log("done");
-  }
-
 }
 
 async function initCollection(collection) {
@@ -63,6 +59,7 @@ main().catch(console.error);
 
 
 module.exports = {
+  ObjectId,
   db,
   closeMongoClient,
 };

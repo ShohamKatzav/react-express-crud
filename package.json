@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "concurrently": "^8.2.0",
+    "nodemon": "^2.0.22"
+  },
+  "scripts": {
+    "start": "concurrently \"cd ./server && npm run server\" \"cd ./client && npm run dev\""
+  }
+}
