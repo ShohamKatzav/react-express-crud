@@ -5,13 +5,13 @@ const express = require("express"),
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
+const mongodb = require('mongodb');
 const {db, closeMongoClient} = require('./mongodb')
 
 
 app.get("/api/v1/todos", async (req, res) => {
   try {
     const todos = await db.collection('todocollection').find().toArray();
-    console.log(todos);
     res.send(todos);
   } catch (err) {
     console.error('Failed to retrieve todos:', err);
@@ -20,8 +20,7 @@ app.get("/api/v1/todos", async (req, res) => {
 });
 
 app.post("/api/v1/todos", async (req, res) => {
-  const body = req.body.value;
-  const newDoc = {todo: body}
+  const newDoc = {todo: req.body.value}
   await db.collection('todocollection').insertOne(newDoc, function (err) {
     if (err) {
       console.error('Failed to insert document:', err);
@@ -29,6 +28,17 @@ app.post("/api/v1/todos", async (req, res) => {
     }
   });
   res.send(newDoc);
+});
+
+app.delete("/api/v1/todos", async (req, res) => {
+  const query = {_id: new mongodb.ObjectId(req.body.id)};
+  await db.collection('todocollection').deleteOne(query, async function (err) {
+    if (err) {
+      console.error('Failed to delete document:', err);
+      return;
+    }
+  });
+  res.sendStatus(204);
 });
 
 

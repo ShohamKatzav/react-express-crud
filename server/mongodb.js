@@ -14,7 +14,6 @@ async function main() {
       }
     })
 
-
     var collectionExists = (await db.listCollections().toArray()).filter(x => x.name === "todocollection");
     if (collectionExists == false) {
       {
@@ -36,13 +35,11 @@ async function main() {
 
 }
 
-
 async function initCollection(collection) {
-  var documents;
    fetch('https://dummyjson.com/todos?limit=6')
     .then(async res => {
-      documents = await res.json();
-      const todoValues = documents.todos.map(x => ({todo: x.todo, completed: x.completed}));
+      const documentsFromDummyjson = await res.json();
+      const todoValues = documentsFromDummyjson.todos.map(x => ({todo: x.todo, completed: x.completed}));
       const result = await collection.insertMany(todoValues, function (err) {
         if (err) {
           console.error('Failed to insert document:', err);
