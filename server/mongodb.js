@@ -32,7 +32,7 @@ async function main() {
 }
 
 async function initCollection(collection) {
-   fetch('https://dummyjson.com/todos?limit=6')
+   fetch('https://dummyjson.com/todos')
     .then(async res => {
       const documentsFromDummyjson = await res.json();
       const todoValues = documentsFromDummyjson.todos.map(x => ({todo: x.todo, completed: x.completed}));

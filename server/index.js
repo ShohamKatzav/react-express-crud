@@ -44,10 +44,8 @@ app.delete("/api/v1/todos", async (req, res) => {
 app.put("/api/v1/editTodo", async (req, res) => {
   const query = { _id: new ObjectId(req.body.id) };
   var params;
-  if (req.body.changesType == "completed")
-    params = { $set: { "completed": req.body.completed } };
-  else if (req.body.changesType == "todo")
-    params = { $set: { "todo": req.body.todo } };
+  req.body.changesType == "completed" ? params = { $set: { "completed": req.body.completed } } :
+  req.body.changesType == "todo" ? params = { $set: { "todo": req.body.todo } } : null
   try {
     const updatedDoc = await db.collection('todocollection').findOneAndUpdate(
       query,
