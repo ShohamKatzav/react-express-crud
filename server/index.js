@@ -5,12 +5,15 @@ const express = require("express"),
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
-const { ObjectId, db, closeMongoClient } = require('./mongodb')
+const mongoose = require("mongoose");
+const connectDB = require("./config/mongodb");
+const Todo = require("./models/Todo");
 
+connectDB();
 
 app.get("/api/v1/todos", async (req, res) => {
   try {
-    const todos = await db.collection('todocollection').find().toArray();
+    const todos = await Todo.find().exec();
     res.send(todos);
   } catch (err) {
     console.error('Failed to retrieve todos:', err);
@@ -19,9 +22,8 @@ app.get("/api/v1/todos", async (req, res) => {
 });
 
 app.post("/api/v1/todos", async (req, res) => {
-  const newDoc = { todo: req.body.value, completed: req.body.completed }
   try {
-    await db.collection('todocollection').insertOne(newDoc);
+    const newDoc = await Todo.create({todo: req.body.value, completed: req.body.completed });
     res.send(newDoc);
   } catch (err) {
     console.error('Failed to insert document:', err);
@@ -30,9 +32,8 @@ app.post("/api/v1/todos", async (req, res) => {
 });
 
 app.delete("/api/v1/todos", async (req, res) => {
-  const query = { _id: new ObjectId(req.body.id) };
   try {
-    await db.collection('todocollection').deleteOne(query);
+    await Todo.findByIdAndRemove(req.body.id);
     res.sendStatus(204);
   }
   catch (err) {
@@ -41,16 +42,20 @@ app.delete("/api/v1/todos", async (req, res) => {
   }
 });
 
-app.put("/api/v1/editTodo", async (req, res) => {
-  const query = { _id: new ObjectId(req.body.id) };
-  var params;
-  req.body.changesType == "completed" ? params = { $set: { "completed": req.body.completed } } :
-  req.body.changesType == "todo" ? params = { $set: { "todo": req.body.todo } } : null
+app.put("/api/v1/editText", async (req, res) => {
   try {
-    const updatedDoc = await db.collection('todocollection').findOneAndUpdate(
-      query,
-      params,
-      { returnDocument: "after" });
+    const updatedDoc = await Todo.findByIdAndUpdate(req.body.id, { todo: req.body.todo }, { returnDocument: "after" });
+    res.send(updatedDoc);
+  }
+  catch (err) {
+    console.error('Failed to update complete for document:', err);
+    res.sendStatus(500);
+  }
+});
+
+app.put("/api/v1/editStatus", async (req, res) => {
+  try {
+    const updatedDoc = await Todo.findByIdAndUpdate(req.body.id, { completed: req.body.completed }, { returnDocument: "after" });
     res.send(updatedDoc);
   }
   catch (err) {
@@ -60,15 +65,8 @@ app.put("/api/v1/editTodo", async (req, res) => {
 });
 
 
-const server = app.listen(PORT, () =>
+mongoose.connection.once('open', () => {
+  const server = app.listen(PORT, () =>
   console.log(`start listening on port : ${PORT}`));
 
-process.on('SIGINT', () => {
-  server.close(() => {
-    closeMongoClient().then(() => {
-      process.exit(0);
-    }).catch(err => {
-      process.exit(1);
-    });
-  });
 });
