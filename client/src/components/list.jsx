@@ -7,14 +7,14 @@ import EditIcon from '@mui/icons-material/Edit';
 import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
 import { toast } from 'react-toastify';
 
-
 function List() {
 
     const baseUrl = "/api/v1";
-    const [dataToShow, setDataToShow] = useState([]);
     const apiRef = useGridApiRef();
     const [currentPaginationModel, setCurrentPaginationModel] = useState({ page: 0, pageSize: 5 });
-    const [itemAdd, setItemAdd] = useState(false);
+    const [dataToShow, setDataToShow] = useState([]);
+    const [isDataRendered, setIsDataRendered] = useState(true);
+    const [todoAdded, setTodoAdded] = useState(false);
     const newTodoInput = useRef("");
     const newTodoCheckbox = useRef(false);
     const columns =
@@ -74,12 +74,12 @@ function List() {
 
         ]
 
-    const dismissAll = () =>  toast.dismiss();
-    const notifySuceess = (text) =>{
+    const dismissAll = () => toast.dismiss();
+    const notifySuceess = (text) => {
         dismissAll();
         toast.success(text);
     }
-    const notifyWarning = (text) =>{
+    const notifyWarning = (text) => {
         dismissAll();
         toast.warning(text);
     }
@@ -105,14 +105,15 @@ function List() {
 
     useEffect(getData, []);
 
-    const addTodo = async () => {
+    const addTodo = () => {
         if (newTodoInput.current.value.trim()) {
             axios
                 .post(baseUrl + "/todos", { value: newTodoInput.current.value, completed: newTodoCheckbox.current.checked })
-                .then(async (res) => {
-                    setDataToShow([...dataToShow, res.data]);
-                    setItemAdd(true);
-                    notifySuceess("Todo added successfuly");
+                .then((res) => {
+                    setTodoAdded(true);
+                    setIsDataRendered(false);
+                    setDataToShow(current => [...current, res.data]);
+                    notifySuceess("Todo added successfully");
                 })
                 .catch((err) => {
                     console.error(err);
@@ -126,47 +127,44 @@ function List() {
         }
     }
 
-    // The next two useEffects work together to handle moving the user to the last page when a Todo is added.
-    // The first useEffect resets the itemAdd flag once a Todo is added.
-    // The second useEffect runs after the Todo addition process is complete,
-    // allowing us to navigate to the last page of the updated grid.
-    useEffect(() => {
-        if (itemAdd) {
-            setItemAdd(false);
-        }
-    })
-    useEffect(() => {
-        const lastPage = Math.ceil(dataToShow.length / currentPaginationModel.pageSize) - 1;
-        if (currentPaginationModel.page < lastPage)
-            apiRef.current.setPage(lastPage);
-    }, [itemAdd])
-
     const deleteTodo = (todo_Id) => {
         axios
             .delete(baseUrl + "/todos", { data: { id: todo_Id } })
             .then(() => {
-                const newData = dataToShow.filter(x => x._id != todo_Id);
-                const lastPage = Math.ceil(newData.length / currentPaginationModel.pageSize) - 1;
-                if (currentPaginationModel.page > lastPage)
-                    apiRef.current.setPage(lastPage);
-                setDataToShow(newData);
-                notifySuceess("Todo deleted successfuly");
+                setDataToShow(current => current.filter(x => x._id !== todo_Id));
+                notifySuceess("Todo deleted successfully");
             })
             .catch((err) => {
                 console.error(err);
             });
     }
 
+    // Check boundaries on delete and move to the last new page on add
+    useEffect(() => {
+        if (dataToShow.length) {
+            if (!isDataRendered)
+                setIsDataRendered(current=>!current);
+            else {
+                const lastPage = Math.ceil(dataToShow.length / currentPaginationModel.pageSize) - 1;
+                if (currentPaginationModel.page > lastPage || currentPaginationModel.page < lastPage && todoAdded)
+                {
+                    apiRef.current.setPage(lastPage);
+                    setTodoAdded(false);
+                }
+            }
+        }
+    }, [dataToShow, isDataRendered]);
+
     const editText = (todo_Id) => {
         const index = dataToShow.findIndex(c => c._id === todo_Id);
         const newTextValue = prompt('Please enter new todo value', dataToShow[index].todo);
         var params = { id: todo_Id, todo: newTextValue };
         sendPutRequestAndUpdateState(params, index, "/editText");
-        notifySuceess("Todo edited successfuly");
+        notifySuceess("Todo edited successfully");
     }
     const editStatus = (todo_Id) => {
         const index = dataToShow.findIndex(c => c._id === todo_Id);
-        var params = { id: todo_Id, completed: (!(dataToShow.find(c => c._id == todo_Id).completed)) };
+        var params = { id: todo_Id, completed: !(dataToShow.find(c => c._id === todo_Id).completed) };
         sendPutRequestAndUpdateState(params, index, "/editStatus");
         notifySuceess("Todo status changed");
     }
@@ -182,7 +180,6 @@ function List() {
             .catch((err) => {
                 console.error(err);
             });
-
     }
 
     const returnRowByParams = (params) => {
@@ -194,7 +191,6 @@ function List() {
                 c.field !== "__check__" && !!c)
             .forEach((c) => (thisRow[c.field] = params.row[c.field]));
         return thisRow;
-
     }
 
     return (
