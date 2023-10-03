@@ -2,18 +2,46 @@ const express = require("express"),
   PORT = 5000,
   app = express();
 
+const mongoose = require("mongoose");
+const { connectDB, fetchTodos } = require("./config/mongodb");
+const Todo = require("./models/Todo");
+
+const checkJwt = require("./middlewares/auth0");
+const extractUser = require("./middlewares/extractUser");
+const guard = require("express-jwt-permissions")();
+
 const bodyParser = require('body-parser');
 app.use(bodyParser.json());
 
-const mongoose = require("mongoose");
-const connectDB = require("./config/mongodb");
-const Todo = require("./models/Todo");
-
 connectDB();
 
-app.get("/api/v1/todos", async (req, res) => {
+app.use(checkJwt);
+app.use(extractUser);
+
+app.get("/api/v1/fetchTodos", guard.check(['create:todos']), async (req, res) => {
   try {
-    const todos = await Todo.find().exec();
+    const todos = await fetchTodos(req.user.sub);
+    todos ? res.send(todos) : res.sendStatus(204);
+  } catch (err) {
+    console.error('Failed to retrieve todos:', err);
+    res.sendStatus(500);
+  }
+});
+
+app.delete("/api/v1/cleanList", guard.check(['delete:todos']), async (req, res) => {
+  try {
+    await Todo.deleteMany({ user_id: req.user.sub });
+    res.sendStatus(204);
+  }
+  catch (err) {
+    console.error('Failed to delete document:', err);
+    res.sendStatus(500);
+  }
+});
+
+app.get("/api/v1/todos", guard.check(['read:todos']), async (req, res) => {
+  try {
+    const todos = await Todo.find({ user_id: req.user.sub }).exec();
     res.send(todos);
   } catch (err) {
     console.error('Failed to retrieve todos:', err);
@@ -21,9 +49,9 @@ app.get("/api/v1/todos", async (req, res) => {
   }
 });
 
-app.post("/api/v1/todos", async (req, res) => {
+app.post("/api/v1/todos", guard.check(['create:todos']), async (req, res) => {
   try {
-    const newDoc = await Todo.create({todo: req.body.value, completed: req.body.completed });
+    const newDoc = await Todo.create({ user_id: req.user.sub, todo: req.body.value, completed: req.body.completed });
     res.send(newDoc);
   } catch (err) {
     console.error('Failed to insert document:', err);
@@ -31,7 +59,7 @@ app.post("/api/v1/todos", async (req, res) => {
   }
 });
 
-app.delete("/api/v1/todos", async (req, res) => {
+app.delete("/api/v1/todos", guard.check(['delete:todos']), async (req, res) => {
   try {
     await Todo.findByIdAndRemove(req.body.id);
     res.sendStatus(204);
@@ -42,7 +70,7 @@ app.delete("/api/v1/todos", async (req, res) => {
   }
 });
 
-app.put("/api/v1/editText", async (req, res) => {
+app.put("/api/v1/editText", guard.check(['update:todos']), async (req, res) => {
   try {
     const updatedDoc = await Todo.findByIdAndUpdate(req.body.id, { todo: req.body.todo }, { returnDocument: "after" });
     res.send(updatedDoc);
@@ -53,7 +81,7 @@ app.put("/api/v1/editText", async (req, res) => {
   }
 });
 
-app.put("/api/v1/editStatus", async (req, res) => {
+app.put("/api/v1/editStatus", guard.check(['update:todos']), async (req, res) => {
   try {
     const updatedDoc = await Todo.findByIdAndUpdate(req.body.id, { completed: req.body.completed }, { returnDocument: "after" });
     res.send(updatedDoc);
@@ -64,9 +92,16 @@ app.put("/api/v1/editStatus", async (req, res) => {
   }
 });
 
+app.use((err, req, res, next) => {
+  if (err.name === 'UnauthorizedError') {
+    console.log(err);
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+});
+
 
 mongoose.connection.once('open', () => {
   const server = app.listen(PORT, () =>
-  console.log(`start listening on port : ${PORT}`));
+    console.log(`start listening on port : ${PORT}`));
 
 });

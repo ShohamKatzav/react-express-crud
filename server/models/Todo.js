@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
 const todoSchema = new Schema({
+    user_id: {
+        type: String,
+        required: true
+    },
     todo: {
         type: String,
         required: true

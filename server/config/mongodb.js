@@ -1,24 +1,15 @@
+require('dotenv').config({ path: "../.env" })
 const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
-const uri = "mongodb://localhost:27017/";
 const dbName = "TodoDB";
 
 async function connectDB() {
   try {
-    await mongoose.connect(uri, {
+    await mongoose.connect(process.env.DB_URI, {
       dbName: dbName,
       useUnifiedTopology: true,
       useNewUrlParser: true
     });
-    
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    const collectionExists = collections.some((collection) => collection.name === 'todos');
-    if (!collectionExists) {
-      console.log("creating collection");
-      await initCollection();
-    }
-    else
-      console.log("collection exist");
 
   }
   catch (e) {
@@ -26,15 +17,28 @@ async function connectDB() {
   }
 }
 
-async function initCollection() {
-  fetch('https://dummyjson.com/todos')
-    .then(async res => {
+async function fetchTodos(sub) {
+  const count = await Todo.find({ user_id: sub }).count();
+  if (count < 150) {
+    console.log("fetching...");
+    try {
+      const res = await fetch('https://dummyjson.com/todos');
       const documentsFromDummyjson = await res.json();
-      const todosArray = documentsFromDummyjson.todos.map((x) => ({ todo: x.todo, completed: x.completed }));
+      const todosArray = documentsFromDummyjson.todos.map
+        ((x) => ({ user_id: sub, todo: x.todo, completed: x.completed }));
+
       const result = await Todo.insertMany(todosArray);
-      console.log("Number of documents inserted: " + result.length);
-    })
+      return result; // Return the result after insertion
+    } catch (error) {
+      console.error('Failed to fetch and insert todos:', error);
+      throw error; // Rethrow the error for handling at a higher level if needed
+    }
+  }
+  else {
+    console.log("No more todos available");
+    return null;
+  }
 }
 
-module.exports = connectDB
+module.exports = { connectDB, fetchTodos }
 
