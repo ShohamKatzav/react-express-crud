@@ -2,6 +2,21 @@ const express = require("express"),
   PORT = 5000,
   app = express();
 
+const cors = require('cors');
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173', 'todo-js54c18dx-shohamkatzavs-projects.vercel.app'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (allowedOrigins.includes(origin) || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,         
+  optionSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
 const mongoose = require("mongoose");
 const { connectDB, fetchTodos } = require("./config/mongodb");
 const Todo = require("./models/Todo");
