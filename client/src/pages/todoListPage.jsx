@@ -10,7 +10,7 @@ import LoginPage from "./loginPage";
 function TodoListPage() {
 
     const fetchAmountRef = useRef(30);
-    const baseUrl = "/api/v1";
+    const baseUrl = import.meta.env.VITE_APP_BASE_URL;
     const apiRef = useGridApiRef();
     const [currentPaginationModel, setCurrentPaginationModel] = useState({ page: 0, pageSize: 5 });
     const [dataToShow, setDataToShow] = useState([]);
