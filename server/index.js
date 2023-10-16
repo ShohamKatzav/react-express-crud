@@ -18,10 +18,10 @@ connectDB();
 app.use(checkJwt);
 app.use(extractUser);
 
-app.get("/api/v1/fetchTodos", guard.check(['create:todos']), async (req, res) => {
+app.post("/api/v1/fetchTodos", guard.check(['create:todos']), async (req, res) => {
   try {
-    const todos = await fetchTodos(req.user.sub);
-    todos ? res.send(todos) : res.sendStatus(204);
+    const todos = await fetchTodos(req.user.sub, parseInt(req.body.fetchAmount));
+    todos.length ? res.send(todos) : res.sendStatus(204);
   } catch (err) {
     console.error('Failed to retrieve todos:', err);
     res.sendStatus(500);
@@ -51,8 +51,13 @@ app.get("/api/v1/todos", guard.check(['read:todos']), async (req, res) => {
 
 app.post("/api/v1/todos", guard.check(['create:todos']), async (req, res) => {
   try {
-    const newDoc = await Todo.create({ user_id: req.user.sub, todo: req.body.value, completed: req.body.completed });
-    res.send(newDoc);
+    const count = await Todo.find({ user_id: req.user.sub }).count();
+    if (count < 150) {
+      const newDoc = await Todo.create({ user_id: req.user.sub, todo: req.body.value, completed: req.body.completed });
+      res.send(newDoc);
+    }
+    else
+      res.sendStatus(204)
   } catch (err) {
     console.error('Failed to insert document:', err);
     res.sendStatus(500);
@@ -105,3 +110,5 @@ mongoose.connection.once('open', () => {
     console.log(`start listening on port : ${PORT}`));
 
 });
+
+module.exports = app

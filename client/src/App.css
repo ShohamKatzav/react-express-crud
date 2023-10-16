@@ -5,7 +5,7 @@
 }
 
 .content {
-  margin-top: 10vh;
+  margin-top: 5rem;
   flex-grow: 1;
   margin-bottom: 10vh;
 }
@@ -16,8 +16,15 @@
   text-align: center;
 }
 
+.table-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
 .todoTable {
-  margin-top: 10vh;
+  margin-top: 5vh;
   height: 371px;
   width: 45vw;
 }
@@ -34,6 +41,10 @@
   margin-top: 2%;
 }
 
+.margin {
+  margin: 5%;
+}
+
 .left-align-text {
   text-align: left;
   display: inline-block;
@@ -43,16 +54,16 @@
 .profile-info {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  height: 60vh;
+  height: 65vh;
   margin: 0;
   background-color: #f0f0f0;
 }
 
 .profile-photo {
-  width: 150px;
-  height: 150px;
+  margin-top: 5vh;
+  height: 15vh;
+  min-height: 4rem;
   border: 3px solid #007BFF;
   border-radius: 50%;
   overflow: hidden;
@@ -64,10 +75,116 @@
   object-fit: cover;
 }
 
+.login-btn {
+  margin-top: 10%;
+  background-color: white;
+  color: black;
+  border: 2px solid #555555;
+  padding: 16px 32px;
+}
+
+.login-btn:hover {
+  background-color: #555555;
+  color: white;
+}
+
+.login-btn a {
+  font-size: xx-large;
+  color: black;
+}
+
+.login-btn:hover a {
+  color: white;
+}
+
+
+.mini-profile-photo {
+  height: 5rem;
+  border: 3px solid #007BFF;
+  border-radius: 50%;
+  overflow: hidden;
+  padding: 0;
+  margin: 0 20px;
+}
+
+.mini-profile-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  padding: 0;
+}
+
+.menu {
+  display: none;
+  position: absolute;
+  background: #fff;
+  right: 0;
+  max-width: 15%;
+  z-index: 9;
+  font-size: large;
+  box-shadow: 0 10px 15px -3px rgb(46 41 51 / 8%), 0 4px 6px -2px rgb(71 63 79 / 16%);
+  border: #555555 solid 1px;
+}
+
+.menu.show-menu {
+  display: block;
+  width: 100%;
+}
+
+.menu.show-menu li a,
+.menu.show-menu li span {
+  list-style: none;
+  color: #555555;
+}
+
+.menu.show-menu li a,
+.menu.show-menu li span{
+  padding: 1vh;
+  display: block;
+}
+
+.menu li {
+  list-style-type: none;
+}
+
+li:has(button.mini-profile-photo) {
+  padding: 0;
+  margin: 0;
+}
+
+ul:has(button.mini-profile-photo) {
+  padding: 0;
+  margin: 0;
+}
+
+.menu.show-menu a:hover {
+  background-color: #C0C0C0;
+}
+
+.profile-btn ul {
+  padding: 0;
+}
+
+button.mini-profile-photo:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.form-border {
+  padding: 10px;
+  border: 3px solid black;
+}
+
+button {
+  border: 3px solid black;
+}
+
+
+
 @media screen and (max-width: 768px) {
 
   .content {
-    margin-top: 13rem;
+    margin-top: 10rem;
     padding: 10px 10px;
   }
 
@@ -75,4 +192,26 @@
     height: 371px;
     width: 100vw;
   }
+
+  .menu {
+    max-width: 100%;
+    margin-top: 0;
+  }
+
+  .menu.show-menu li {
+    margin: 0;
+    padding: 0;
+  }
+
+  .mini-profile-photo {
+    height: 3rem;
+  }
+
+  .menu.show-menu li a{
+    padding: 0;
+  }
+  .menu.show-menu li span {
+    padding: 0;
+  }
+
 }

@@ -1,9 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth0 } from "@auth0/auth0-react";
-import LogoutButton from './logoutButton';
 import LoginButton from './loginButton';
 import './Navbar.css';
+import ProfileButton from './profileButton';
 
 function Navbar() {
     const { isAuthenticated, isLoading } = useAuth0();
@@ -16,18 +16,15 @@ function Navbar() {
             </div>
             <ul className="nav-links">
                 <li><Link to="">Home</Link></li>
-                {isAuthenticated &&
-                    (<li><Link to="profile">Profile</Link></li>)
-                }
                 <li><Link to="contact">Contact</Link></li>
                 <li><Link to="about">About</Link></li>
 
             </ul>
-            <ul className="nav-links">
+            <ul className="nav-links-no-padding">
                 {isAuthenticated ? (
-                    <li><LogoutButton /></li>
+                    <li><ProfileButton /></li>
                 ) : (
-                    <li><LoginButton /></li>
+                    <li className="nav-links"><LoginButton /></li>
                 )}
             </ul>
         </nav>

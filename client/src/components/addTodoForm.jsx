@@ -24,13 +24,13 @@ function AddToDoForm({ addTodo }) {
 
   return (
     <>
-      <div className="small-margin-top">
+      <div className="small-margin-top form-border">
         <h3>Add a new task</h3>
         <input type="text" ref={newTodoInput} />
         <input type="checkbox" ref={newTodoCheckbox} />
         <label>Completed?</label>
         <div className="small-margin-top">
-          <button onClick={handleAddTodo}>Add Todo</button>
+          <button className="small-margin-top" onClick={handleAddTodo}>Add Todo</button>
         </div>
       </div>
     </>

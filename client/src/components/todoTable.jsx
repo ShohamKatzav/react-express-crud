@@ -10,29 +10,13 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
 
     const columns =
         [
-            { field: '_id', headerName: 'ID', width: 70, valueGetter: (params) => params.row._id.slice(-6) },
-            { field: 'todo', headerName: 'To Do', width: 600 },
-            { field: 'completed', headerName: 'Status', type: 'boolean' },
-            {
-                field: "delete",
-                headerName: "Delete",
-                sortable: false,
-                renderCell: (params) => {
-                    const onClick = (e) => {
-                        e.stopPropagation(); // don't select this row after clicking
-                        const thisRow = returnRowByParams(params);
-                        return deleteTodo(thisRow._id);
-                    };
-
-                    return <IconButton onClick={onClick} color="primary">
-                        <DeleteIcon />
-                    </IconButton>
-                }
-            },
+            { field: '_id', flex: 0.3, headerName: 'ID', valueGetter: (params) => params.row._id.slice(-6) },
+            { field: 'todo', flex: 1.0, headerName: 'To Do' },
+            { field: 'completed', flex: 0.3, headerName: "Status", type: 'boolean' },
             {
                 field: "changeStatus",
+                flex: 0.3,
                 headerName: "Change Status",
-                width: 120,
                 sortable: false,
                 renderCell: (params) => {
                     const onClick = (e) => {
@@ -40,7 +24,6 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
                         const thisRow = returnRowByParams(params);
                         return editStatus(thisRow._id);
                     };
-
                     return <IconButton onClick={onClick} color="primary">
                         <CheckBoxOutlineBlankIcon />
                     </IconButton>
@@ -48,7 +31,9 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
             },
             {
                 field: "edit",
+                flex: 0.2,
                 headerName: "Edit",
+                description: 'Edit todo text',
                 sortable: false,
                 renderCell: (params) => {
                     const onClick = (e) => {
@@ -59,6 +44,24 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
 
                     return <IconButton onClick={onClick} color="primary">
                         <EditIcon />
+                    </IconButton>
+                }
+            },
+            {
+                field: "delete",
+                flex: 0.2,
+                headerName: "Delete",
+                description: 'Delete todo',
+                sortable: false,
+                renderCell: (params) => {
+                    const onClick = (e) => {
+                        e.stopPropagation(); // don't select this row after clicking
+                        const thisRow = returnRowByParams(params);
+                        return deleteTodo(thisRow._id);
+                    };
+
+                    return <IconButton onClick={onClick} color="primary">
+                        <DeleteIcon />
                     </IconButton>
                 }
             },
@@ -78,24 +81,27 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
     return (
         <>
             {dataToShow &&
-                <div className="todoTable">
-                    <DataGrid
-                        rows={dataToShow}
-                        getRowId={(row) => row._id}
-                        columns={columns}
-                        apiRef={apiRef}
-                        initialState={{
-                            pagination: {
-                                paginationModel: { page: 0, pageSize: 5 }
-                            }
-                        }}
-                        pageSizeOptions={[5, 10, 25, 100]}
-                        onPaginationModelChange={(newModel) => (setCurrentPaginationModel(newModel))}
-                    />
+                <div className="table-container">
+                    <div className="todoTable">
+                        <DataGrid
+                            rows={dataToShow}
+                            getRowId={(row) => row._id}
+                            columns={columns}
+                            apiRef={apiRef}
+                            initialState={{
+                                pagination: {
+                                    paginationModel: { page: 0, pageSize: 5 }
+                                }
+                            }}
+                            pageSizeOptions={[5, 10, 25, 100]}
+                            onPaginationModelChange={(newModel) => (setCurrentPaginationModel(newModel))}
+                        />
+                    </div>
                 </div>
             }
         </>
     );
 }
+
 
 export default TodoTable;

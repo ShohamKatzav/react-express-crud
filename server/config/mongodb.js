@@ -17,26 +17,28 @@ async function connectDB() {
   }
 }
 
-async function fetchTodos(sub) {
+// We'll skip a random number to get different todos every call
+// skip will be from 0 to (150-amount-1)
+async function fetchTodos(sub, amount) {
+  const TOTAL = 150;
+  const skip = Math.floor(Math.random() * (TOTAL - amount));
   const count = await Todo.find({ user_id: sub }).count();
-  if (count < 150) {
-    console.log("fetching...");
+  if (count + amount <= 150) {
     try {
-      const res = await fetch('https://dummyjson.com/todos');
+      const res = await fetch(`https://dummyjson.com/todos?limit=${amount}&skip=${skip}`);
       const documentsFromDummyjson = await res.json();
       const todosArray = documentsFromDummyjson.todos.map
         ((x) => ({ user_id: sub, todo: x.todo, completed: x.completed }));
 
       const result = await Todo.insertMany(todosArray);
-      return result; // Return the result after insertion
+      return result;
     } catch (error) {
       console.error('Failed to fetch and insert todos:', error);
-      throw error; // Rethrow the error for handling at a higher level if needed
+      throw error;
     }
   }
   else {
-    console.log("No more todos available");
-    return null;
+    return [];
   }
 }
 

@@ -1,13 +1,15 @@
-import { React, useEffect, useState } from "react";
+import { React, useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useGridApiRef } from "@mui/x-data-grid";
 import { toast } from 'react-toastify';
+import { useAuth0 } from "@auth0/auth0-react";
 import AddToDoForm from "../components/addTodoForm";
 import TodoTable from "../components/todoTable";
-import { useAuth0 } from "@auth0/auth0-react";
+import LoginPage from "./loginPage";
 
 function TodoListPage() {
 
+    const fetchAmountRef = useRef(30);
     const baseUrl = "/api/v1";
     const apiRef = useGridApiRef();
     const [currentPaginationModel, setCurrentPaginationModel] = useState({ page: 0, pageSize: 5 });
@@ -22,6 +24,10 @@ function TodoListPage() {
     const notifySuceess = (text) => {
         toast.dismiss()
         toast.success(text);
+    }
+    const notifyWarning = (text) => {
+        toast.dismiss()
+        toast.warning(text);
     }
     const notifyError = (text) => {
         toast.dismiss()
@@ -59,7 +65,7 @@ function TodoListPage() {
 
     const fetchTodos = async () => {
         try {
-            const response = await axios.get(`${baseUrl}/fetchTodos`, config);
+            const response = await axios.post(`${baseUrl}/fetchTodos`, { fetchAmount: fetchAmountRef.current.value }, config);
             if (response.status === 200) {
                 const newData = [...dataToShow, ...response.data]
                 setDataToShow(newData);
@@ -68,7 +74,7 @@ function TodoListPage() {
                 notifySuceess("The fetch operation was completed successfully");
             }
             else {
-                notifyError("No more todos available to fetch");
+                notifyError("Max list size is 150");
             }
         } catch (e) {
             console.log(e.message);
@@ -77,13 +83,18 @@ function TodoListPage() {
     }
     const cleanList = async () => {
         try {
-            const response = await axios.delete(`${baseUrl}/cleanList`, config);
-            if (response.status === 204) {
-                setDataToShow([]);
-                notifySuceess("The clean operation was completed successfully");
-            }
-            else {
-                notifyError("Could not clean list");
+            if (confirm('Are you sure you want to delete all the todos?')) {
+                const response = await axios.delete(`${baseUrl}/cleanList`, config);
+                if (response.status === 204) {
+                    apiRef.current.setPage(0);
+                    setDataToShow([]);
+                    notifySuceess("The clean operation was completed successfully");
+                }
+                else {
+                    notifyError("Could not clean the list");
+                }
+            } else {
+                notifyWarning("Clean operation canceled");
             }
         } catch (e) {
             console.log(e.message);
@@ -94,14 +105,18 @@ function TodoListPage() {
     const addTodo = async (todo, completed) => {
         try {
             const response = await axios.post(`${baseUrl}/todos`, { value: todo, completed: completed }, config);
-            setTodoAdded(true);
-            setIsDataRendered(false);
-            setDataToShow(current => [...current, response.data]);
-            notifySuceess("Todo added successfully");
+            if (response.status === 200) {
+                setTodoAdded(true);
+                setIsDataRendered(false);
+                setDataToShow(current => [...current, response.data]);
+                notifySuceess("Todo added successfully");
+            }
+            else {
+                notifyError("Max list size is 150");
+            }
         } catch (e) {
             console.log(e.message);
         }
-
     }
 
     const deleteTodo = async (todo_Id) => {
@@ -169,14 +184,20 @@ function TodoListPage() {
                 setCurrentPaginationModel={setCurrentPaginationModel}
                 apiRef={apiRef}
             />
-            <div className="small-margin-top">
-                <button onClick={fetchTodos}>Fetch</button>
-                <button onClick={cleanList}>Clean list</button>
+            <div className="small-margin-top form-border">
+                <div>
+                    <label htmlFor="fetch">Choose an amount to fetch: </label>
+                    <select ref={fetchAmountRef} name="fetch" id="fetch" defaultValue={30}>
+                        {[1, 5, 10, 20, 30, 100].map(x => <option key={x} value={x}>{x}</option>)}
+                    </select>
+                </div>
+                <button className="margin" onClick={fetchTodos}>Fetch</button>
+                <button className="margin" onClick={cleanList} disabled={dataToShow.length < 1}>Clean list</button>
             </div>
             <AddToDoForm addTodo={addTodo} />
         </>
     ) : (
-        <h1>To view your tasks, please log in.</h1>
+        <LoginPage />
     );
 
 }
