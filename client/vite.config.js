@@ -6,7 +6,7 @@ export default defineConfig({
     server: {
       port: 3000,
       proxy: {
-        "/api/v1": "https://react-express-crud-eight.vercel.app/",
+        "/api/v1": "https://react-express-crud-eight.vercel.app",
       },
     },
     plugins: [react()],
