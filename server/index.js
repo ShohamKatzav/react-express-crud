@@ -3,7 +3,7 @@ const express = require("express"),
   app = express();
 
 const cors = require('cors');
-const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173', 'https://todo-5rfj0t2o2-shohamkatzavs-projects.vercel.app'];
+const allowedOrigins = ['http://localhost:3000', 'http://localhost:5173', 'https://todo-5rfj0t2o2-shohamkatzavs-projects.vercel.app', "https://todo-app-topaz-psi.vercel.app"];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.includes(origin) || !origin) {
