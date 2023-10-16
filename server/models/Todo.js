@@ -16,7 +16,6 @@ const todoSchema = new Schema({
     }
 }, {
     capped: { size: 1024 },
-    bufferCommands: false,
     autoCreate: false
 });
 
