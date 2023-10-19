@@ -5,7 +5,7 @@ function ContactPage() {
         <>
             <h1>Contact Us</h1>
             <div className='left-align-text'>
-                <p>If you have any questions or feedback, feel free to get in touch with us!</p>
+                <p>If you have any questions or feedback, feel free to get in touch with me!</p>
                 <li>
                     <strong>Email:</strong> shohamkatzav95@gmail.com
                 </li>

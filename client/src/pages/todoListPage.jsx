@@ -37,12 +37,7 @@ function TodoListPage() {
     const getData = async () => {
         if (isAuthenticated) {
             try {
-                const accessToken = await getAccessTokenSilently({
-                    authorizationParams: {
-                        audience: import.meta.env.VITE_APP_AUTH0_API_AUDIENCE,
-                        scope: "read:todos",
-                    },
-                });
+                const accessToken = await getAccessTokenSilently();
                 const newConfig = {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 };

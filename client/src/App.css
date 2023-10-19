@@ -179,7 +179,20 @@ button {
   border: 3px solid black;
 }
 
+.MuiDataGrid-root .MuiDataGrid-cell:nth-child(2) {
+  color: rgba(27, 53, 219, 0.896);
+  text-align: start;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+}
 
+.MuiDataGrid-root .MuiDataGrid-cell:nth-child(2) .MuiDataGrid-cellContent{
+  height: 100%;
+  margin-top: 1.6rem;
+  padding-top: 1.8rem;
+  padding-bottom: 1.8rem;
+  overflow-y: auto !important;
+}
 
 @media screen and (max-width: 768px) {
 
@@ -189,8 +202,7 @@ button {
   }
 
   .todoTable {
-    height: 371px;
-    width: 100vw;
+    width: 90vw;
   }
 
   .menu {
@@ -212,6 +224,19 @@ button {
   }
   .menu.show-menu li span {
     padding: 0;
+  }
+
+  .login-btn {
+    margin-top: 5%;
+    padding: 8px 16px;
+  }
+  
+  .login-btn a {
+    font-size: x-large;
+  }
+
+  .MuiDataGrid-root .MuiDataGrid-cell:nth-child(2) .MuiDataGrid-cellContent{
+    margin-top: 0;
   }
 
 }
