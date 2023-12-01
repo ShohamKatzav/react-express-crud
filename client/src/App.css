@@ -26,7 +26,7 @@
 .todoTable {
   margin-top: 5vh;
   height: 371px;
-  width: 45vw;
+  width: 40vw;
 }
 
 .big-margin-top {
@@ -173,6 +173,7 @@ button.mini-profile-photo:focus {
 .form-border {
   padding: 10px;
   border: 3px solid black;
+  justify-content: space-evenly;
 }
 
 button {
@@ -184,13 +185,12 @@ button {
   text-align: start;
   white-space: normal !important;
   word-wrap: break-word !important;
+  padding-bottom: 0.7rem;
 }
 
 .MuiDataGrid-root .MuiDataGrid-cell:nth-child(2) .MuiDataGrid-cellContent{
   height: 100%;
-  margin-top: 1.6rem;
-  padding-top: 1.8rem;
-  padding-bottom: 1.8rem;
+  padding-top: 1.9rem;
   overflow-y: auto !important;
 }
 
@@ -202,7 +202,7 @@ button {
   }
 
   .todoTable {
-    width: 90vw;
+    width: 92vw;
   }
 
   .menu {
@@ -233,10 +233,6 @@ button {
   
   .login-btn a {
     font-size: x-large;
-  }
-
-  .MuiDataGrid-root .MuiDataGrid-cell:nth-child(2) .MuiDataGrid-cellContent{
-    margin-top: 0;
   }
 
 }

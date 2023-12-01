@@ -4,7 +4,8 @@ import { DataGrid } from "@mui/x-data-grid";
 import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
+import CheckCircle from "@mui/icons-material/CheckCircle";
+import Cancel from "@mui/icons-material/Cancel";
 
 function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPaginationModel, apiRef }) {
 
@@ -12,11 +13,10 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
         [
             { field: '_id', flex: 0.3, headerName: 'ID', valueGetter: (params) => params.row._id.slice(-6) },
             { field: 'todo', flex: 1.0, headerName: 'To Do' },
-            { field: 'completed', flex: 0.3, headerName: "Status", type: 'boolean' },
             {
-                field: "changeStatus",
-                flex: 0.3,
-                headerName: "Change Status",
+                field: "completed",
+                flex: 0.2,
+                headerName: "Status",
                 sortable: false,
                 renderCell: (params) => {
                     const onClick = (e) => {
@@ -24,10 +24,13 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
                         const thisRow = returnRowByParams(params);
                         return editStatus(thisRow._id);
                     };
-                    return <IconButton onClick={onClick} color="primary">
-                        <CheckBoxOutlineBlankIcon />
-                    </IconButton>
-                }
+                    return (
+                        <IconButton onClick={onClick} color="primary">
+                          {params.value ? <CheckCircle /> : <Cancel />}
+                        </IconButton>
+                      );
+                },
+                type: 'boolean'
             },
             {
                 field: "edit",

@@ -7,31 +7,37 @@ function AddToDoForm({ addTodo }) {
   const newTodoCheckbox = useRef(false);
 
 
-  const notifyWarning = (text) => {
+  const notifyError = (text) => {
     toast.dismiss();
-    toast.warning(text);
+    toast.error(text);
   }
 
-  const handleAddTodo = () => {
+  const handleAddTodo = (e) => {
+    e.preventDefault();
     if (newTodoInput.current.value.trim()) {
       addTodo(newTodoInput.current.value, newTodoCheckbox.current.checked);
       newTodoCheckbox.current.checked = false;
       newTodoInput.current.value = "";
     } else {
-      notifyWarning("Please enter a todo value");
+      notifyError("Please enter a todo value");
     }
   };
 
   return (
     <>
       <div className="small-margin-top form-border">
-        <h3>Add a new task</h3>
-        <input type="text" ref={newTodoInput} />
-        <input type="checkbox" ref={newTodoCheckbox} />
-        <label>Completed?</label>
-        <div className="small-margin-top">
-          <button className="small-margin-top" onClick={handleAddTodo}>Add Todo</button>
-        </div>
+        <form onSubmit={handleAddTodo}>
+          <h3>Add a new task</h3>
+          <div className="small-margin-top">
+            <label> Task: </label>
+            <input type="text" ref={newTodoInput} />
+            <label> Status: </label>
+            <input type="checkbox" ref={newTodoCheckbox} />
+          </div>
+          <div className="small-margin-top">
+            <button type="submit" className="small-margin-top">Add Todo</button>
+          </div>
+        </form>
       </div>
     </>
   );

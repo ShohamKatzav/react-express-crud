@@ -6,6 +6,8 @@ import { useAuth0 } from "@auth0/auth0-react";
 import AddToDoForm from "../components/addTodoForm";
 import TodoTable from "../components/todoTable";
 import LoginPage from "./loginPage";
+import CleanTodosDialog from "../components/cleanTodosDialog";
+import EditTodoDialog from "../components/editTodoDialog";
 
 function TodoListPage() {
 
@@ -18,6 +20,9 @@ function TodoListPage() {
     const [todoAdded, setTodoAdded] = useState(false);
     const [config, setConfig] = useState(null);
 
+    const [isCleanListDialogOpen, setIsCleanListDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [params, setParams] = useState({});
 
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
 
@@ -76,26 +81,31 @@ function TodoListPage() {
         }
 
     }
-    const cleanList = async () => {
+
+    const openCleanListDialog = () => {
+        setIsCleanListDialogOpen(true);
+    };
+    const closeCleanListDialog = () => {
+        notifyWarning("Clean list operation canceled");
+        setIsCleanListDialogOpen(false);
+    };
+    const handleCleanListDialogSubmit = async (e) => {
+        e.preventDefault();
         try {
-            if (confirm('Are you sure you want to delete all the todos?')) {
-                const response = await axios.delete(`${baseUrl}/cleanList`, config);
-                if (response.status === 204) {
-                    apiRef.current.setPage(0);
-                    setDataToShow([]);
-                    notifySuceess("The clean operation was completed successfully");
-                }
-                else {
-                    notifyError("Could not clean the list");
-                }
-            } else {
-                notifyWarning("Clean operation canceled");
+            const response = await axios.delete(`${baseUrl}/cleanList`, config);
+            if (response.status === 204) {
+                apiRef.current.setPage(0);
+                setDataToShow([]);
+                notifySuceess("The clean operation was completed successfully");
             }
+            else {
+                notifyError("Could not clean the list");
+            }
+            setIsCleanListDialogOpen(false);
         } catch (e) {
             console.log(e.message);
         }
-
-    }
+    };
 
     const addTodo = async (todo, completed) => {
         try {
@@ -140,12 +150,25 @@ function TodoListPage() {
         }
     }, [dataToShow, isDataRendered]);
 
-    const editText = (todo_Id) => {
-        const index = dataToShow.findIndex(c => c._id === todo_Id);
-        const newTextValue = prompt('Please enter new todo value', dataToShow[index].todo);
-        var params = { id: todo_Id, todo: newTextValue };
+
+    const openEditTodoDialog = () => {
+        setIsEditDialogOpen(true);
+    };
+    const closeEditTodoDialog = () => {
+        notifyWarning("Edit operation canceled");
+        setIsEditDialogOpen(false);
+    };
+    const handleEditDialogSubmit = (e) => {
+        e.preventDefault();
+        const index = dataToShow.findIndex(c => c._id === params.id);
         sendPutRequestAndUpdateState(params, index, "/editText");
         notifySuceess("Todo edited successfully");
+        setIsEditDialogOpen(false);
+    };
+    const editText = (todo_Id) => {
+        const updatedParams = { id: todo_Id, todo: (dataToShow.find(todo => todo._id === todo_Id)).todo };
+        setParams(updatedParams);
+        openEditTodoDialog();
     }
     const editStatus = (todo_Id) => {
         const index = dataToShow.findIndex(c => c._id === todo_Id);
@@ -179,6 +202,7 @@ function TodoListPage() {
                 setCurrentPaginationModel={setCurrentPaginationModel}
                 apiRef={apiRef}
             />
+            <AddToDoForm addTodo={addTodo} />
             <div className="small-margin-top form-border">
                 <div>
                     <label htmlFor="fetch">Choose an amount to fetch: </label>
@@ -187,9 +211,24 @@ function TodoListPage() {
                     </select>
                 </div>
                 <button className="margin" onClick={fetchTodos}>Fetch</button>
-                <button className="margin" onClick={cleanList} disabled={dataToShow.length < 1}>Clean list</button>
+                <button className="margin" onClick={openCleanListDialog} disabled={dataToShow.length < 1}>Clean list</button>
             </div>
-            <AddToDoForm addTodo={addTodo} />
+            {
+                isEditDialogOpen &&
+                <EditTodoDialog
+                    handleEditDialogSubmit={handleEditDialogSubmit}
+                    closeEditTodoDialog={closeEditTodoDialog}
+                    params={params}
+                    setParams={setParams}
+                />
+            }
+            {
+                isCleanListDialogOpen &&
+                <CleanTodosDialog
+                    handleCleanListDialogSubmit={handleCleanListDialogSubmit}
+                    closeCleanListDialog={closeCleanListDialog}
+                />
+            }
         </>
     ) : (
         <LoginPage />
