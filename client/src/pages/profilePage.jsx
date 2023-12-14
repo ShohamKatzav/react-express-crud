@@ -10,7 +10,7 @@ const ProfilePage = () => {
   return (
     isAuthenticated && (
       <>
-        <h1>Hello {user.nickname}</h1>
+        <h2>Hello {user.nickname}</h2>
         <div className="profile-info">
           <div className="profile-photo">
             <img src={user.picture} alt={user.name} />

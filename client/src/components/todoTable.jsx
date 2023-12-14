@@ -12,10 +12,10 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
     const columns =
         [
             { field: '_id', flex: 0.2, headerName: "ID", valueGetter: (params) => params.row._id.slice(-3)},
-            { field: 'todo', flex: 1, headerName: "To Do" },
+            { field: 'todo', flex: 1.0, headerName: "To Do" },
             {
                 field: "completed",
-                flex: 0.1,
+                flex: 0.2,
                 headerName: "Status",
                 sortable: false,
                 renderCell: (params) => {

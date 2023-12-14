@@ -204,7 +204,6 @@ function TodoListPage() {
     const changeSelectedStatus = async (newStatus) => {
         const indexes = [];
         for (var i = 0; i < selectedRows.length; i++) {
-            console.log(dataToShow[i]);
             const index = dataToShow.findIndex(c => selectedRows[i].includes(c._id));
             if (dataToShow[index].completed !== newStatus ) indexes.push(index);
         }

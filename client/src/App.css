@@ -203,11 +203,10 @@ button {
 
   .content {
     margin-top: 10rem;
-    padding: 10px 10px;
   }
 
   .todoTable {
-    width: 92vw;
+    width: 100vw;
   }
 
   .menu {
