@@ -7,15 +7,15 @@ import EditIcon from "@mui/icons-material/Edit";
 import CheckCircle from "@mui/icons-material/CheckCircle";
 import Cancel from "@mui/icons-material/Cancel";
 
-function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPaginationModel, apiRef }) {
+function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPaginationModel, apiRef, setSelectedRows }) {
 
     const columns =
         [
-            { field: '_id', flex: 0.3, headerName: 'ID', valueGetter: (params) => params.row._id.slice(-6) },
-            { field: 'todo', flex: 1.0, headerName: 'To Do' },
+            { field: '_id', flex: 0.2, headerName: "ID", valueGetter: (params) => params.row._id.slice(-3)},
+            { field: 'todo', flex: 1, headerName: "To Do" },
             {
                 field: "completed",
-                flex: 0.2,
+                flex: 0.1,
                 headerName: "Status",
                 sortable: false,
                 renderCell: (params) => {
@@ -26,9 +26,9 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
                     };
                     return (
                         <IconButton onClick={onClick} color="primary">
-                          {params.value ? <CheckCircle /> : <Cancel />}
+                            {params.value ? <CheckCircle /> : <Cancel />}
                         </IconButton>
-                      );
+                    );
                 },
                 type: 'boolean'
             },
@@ -98,6 +98,11 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
                             }}
                             pageSizeOptions={[5, 10, 25, 100]}
                             onPaginationModelChange={(newModel) => (setCurrentPaginationModel(newModel))}
+                            onRowSelectionModelChange={(newRowSelectionModel) => {
+                                setSelectedRows(newRowSelectionModel);
+                            }}
+                            checkboxSelection
+                            disableRowSelectionOnClick
                         />
                     </div>
                 </div>
@@ -105,6 +110,4 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
         </>
     );
 }
-
-
 export default TodoTable;

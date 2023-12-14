@@ -3,15 +3,21 @@ import axios from "axios";
 import { useGridApiRef } from "@mui/x-data-grid";
 import { toast } from 'react-toastify';
 import { useAuth0 } from "@auth0/auth0-react";
-import AddToDoForm from "../components/addTodoForm";
+import AddToDoDialog from "../dialogs/addTodoDialog";
 import TodoTable from "../components/todoTable";
 import LoginPage from "./loginPage";
-import CleanTodosDialog from "../components/cleanTodosDialog";
-import EditTodoDialog from "../components/editTodoDialog";
+import useGetButtonsSize from "../hooks/useGetButtonsSize";
+import CleanTodosDialog from "../dialogs/cleanTodosDialog";
+import EditTodoDialog from "../dialogs/editTodoDialog";
+import FetchTodoDialog from "../dialogs/fetchTodoDialog";
+
+import Button from '@mui/material/Button';
+import DeleteIcon from '@mui/icons-material/Delete';
+import CheckCircle from "@mui/icons-material/CheckCircle";
+import Cancel from "@mui/icons-material/Cancel";
 
 function TodoListPage() {
 
-    const fetchAmountRef = useRef(30);
     const baseUrl = import.meta.env.VITE_APP_BASE_URL;
     const apiRef = useGridApiRef();
     const [currentPaginationModel, setCurrentPaginationModel] = useState({ page: 0, pageSize: 5 });
@@ -20,11 +26,14 @@ function TodoListPage() {
     const [todoAdded, setTodoAdded] = useState(false);
     const [config, setConfig] = useState(null);
 
-    const [isCleanListDialogOpen, setIsCleanListDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [params, setParams] = useState({});
+    const fetchAmountRef = useRef(30);
 
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
+
+    const [selectedRows, setSelectedRows] = useState([]);
+    const buttonSize = useGetButtonsSize();
 
     const notifySuceess = (text) => {
         toast.dismiss()
@@ -47,7 +56,7 @@ function TodoListPage() {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 };
                 setConfig(newConfig);
-                const response = await axios.get(`${baseUrl}/todos`, newConfig);
+                const response = await axios.get(`${baseUrl}/todo`, newConfig);
                 const data = response.data;
                 setDataToShow(data);
 
@@ -82,15 +91,7 @@ function TodoListPage() {
 
     }
 
-    const openCleanListDialog = () => {
-        setIsCleanListDialogOpen(true);
-    };
-    const closeCleanListDialog = () => {
-        notifyWarning("Clean list operation canceled");
-        setIsCleanListDialogOpen(false);
-    };
-    const handleCleanListDialogSubmit = async (e) => {
-        e.preventDefault();
+    const cleanList = async () => {
         try {
             const response = await axios.delete(`${baseUrl}/cleanList`, config);
             if (response.status === 204) {
@@ -101,7 +102,6 @@ function TodoListPage() {
             else {
                 notifyError("Could not clean the list");
             }
-            setIsCleanListDialogOpen(false);
         } catch (e) {
             console.log(e.message);
         }
@@ -109,7 +109,7 @@ function TodoListPage() {
 
     const addTodo = async (todo, completed) => {
         try {
-            const response = await axios.post(`${baseUrl}/todos`, { value: todo, completed: completed }, config);
+            const response = await axios.post(`${baseUrl}/todo`, { value: todo, completed: completed }, config);
             if (response.status === 200) {
                 setTodoAdded(true);
                 setIsDataRendered(false);
@@ -126,7 +126,7 @@ function TodoListPage() {
 
     const deleteTodo = async (todo_Id) => {
         try {
-            await axios.delete(`${baseUrl}/todos`, { headers: { Authorization: config.headers.Authorization }, data: { id: todo_Id } })
+            await axios.delete(`${baseUrl}/todo`, { headers: { Authorization: config.headers.Authorization }, data: { id: todo_Id } })
             setDataToShow(current => current.filter(x => x._id !== todo_Id));
             notifySuceess("Todo deleted successfully");
 
@@ -139,7 +139,7 @@ function TodoListPage() {
     useEffect(() => {
         if (dataToShow.length) {
             if (!isDataRendered)
-                setIsDataRendered(current => !current);
+                setIsDataRendered(true);
             else {
                 const lastPage = Math.ceil(dataToShow.length / currentPaginationModel.pageSize) - 1;
                 if (currentPaginationModel.page > lastPage || currentPaginationModel.page < lastPage && todoAdded) {
@@ -161,10 +161,11 @@ function TodoListPage() {
     const handleEditDialogSubmit = (e) => {
         e.preventDefault();
         const index = dataToShow.findIndex(c => c._id === params.id);
-        sendPutRequestAndUpdateState(params, index, "/editText");
+        sendPutRequestAndUpdateState(params, index, "/todo/editText");
         notifySuceess("Todo edited successfully");
         setIsEditDialogOpen(false);
     };
+
     const editText = (todo_Id) => {
         const updatedParams = { id: todo_Id, todo: (dataToShow.find(todo => todo._id === todo_Id)).todo };
         setParams(updatedParams);
@@ -173,7 +174,7 @@ function TodoListPage() {
     const editStatus = (todo_Id) => {
         const index = dataToShow.findIndex(c => c._id === todo_Id);
         var params = { id: todo_Id, completed: !(dataToShow.find(c => c._id === todo_Id).completed) };
-        sendPutRequestAndUpdateState(params, index, "/editStatus");
+        sendPutRequestAndUpdateState(params, index, "/todo/editStatus");
         notifySuceess("Todo status changed");
     }
 
@@ -186,6 +187,43 @@ function TodoListPage() {
         } catch (e) {
             console.log(e.message);
         }
+    }
+
+    const deleteSelected = async () => {
+        try {
+            await axios.delete(`${baseUrl}/delete-selected`, {
+                headers: { Authorization: config.headers.Authorization }, data: { ids: selectedRows }
+            })
+            setDataToShow(current => current.filter(x => !selectedRows.includes(x._id)));
+            notifySuceess("Todos deleted successfully");
+
+        } catch (e) {
+            console.log(e.message);
+        }
+    }
+    const changeSelectedStatus = async (newStatus) => {
+        const indexes = [];
+        for (var i = 0; i < selectedRows.length; i++) {
+            console.log(dataToShow[i]);
+            const index = dataToShow.findIndex(c => selectedRows[i].includes(c._id));
+            if (dataToShow[index].completed !== newStatus ) indexes.push(index);
+        }
+        if (indexes.length === 0){
+            notifyWarning("Nothing to change");
+            return;
+        }
+        var params = { ids: selectedRows, completed: newStatus };
+        try {
+            const response = await axios.put(`${baseUrl}/change-selected-status`, params, config);
+            const newData = [...dataToShow];
+            indexes.forEach((index) =>{
+                newData[index] = response.data.find(x => x._id == newData[index]._id)
+            });
+            setDataToShow(newData);
+        } catch (e) {
+            console.log(e.message);
+        }
+        notifySuceess("Todos status changed");
     }
 
     if (isLoading)
@@ -201,18 +239,27 @@ function TodoListPage() {
                 editStatus={editStatus}
                 setCurrentPaginationModel={setCurrentPaginationModel}
                 apiRef={apiRef}
+                setSelectedRows={setSelectedRows}
             />
-            <AddToDoForm addTodo={addTodo} />
-            <div className="small-margin-top form-border">
-                <div>
-                    <label htmlFor="fetch">Choose an amount to fetch: </label>
-                    <select ref={fetchAmountRef} name="fetch" id="fetch" defaultValue={30}>
-                        {[1, 5, 10, 20, 30, 100].map(x => <option key={x} value={x}>{x}</option>)}
-                    </select>
-                </div>
-                <button className="margin" onClick={fetchTodos}>Fetch</button>
-                <button className="margin" onClick={openCleanListDialog} disabled={dataToShow.length < 1}>Clean list</button>
-            </div>
+            <div className="small-margin-top"></div>
+            <AddToDoDialog
+                addTodo={addTodo}
+                buttonSize={buttonSize}
+                notifyError={notifyError}
+                notifyWarning={notifyWarning}
+            />
+            <FetchTodoDialog
+                fetchTodos={fetchTodos}
+                fetchAmountRef={fetchAmountRef}
+                buttonSize={buttonSize}
+                notifyWarning={notifyWarning}
+            />
+            <CleanTodosDialog
+                cleanList={cleanList}
+                dataToShow={dataToShow}
+                buttonSize={buttonSize}
+                notifyWarning={notifyWarning}
+            />
             {
                 isEditDialogOpen &&
                 <EditTodoDialog
@@ -222,13 +269,25 @@ function TodoListPage() {
                     setParams={setParams}
                 />
             }
-            {
-                isCleanListDialogOpen &&
-                <CleanTodosDialog
-                    handleCleanListDialogSubmit={handleCleanListDialogSubmit}
-                    closeCleanListDialog={closeCleanListDialog}
-                />
-            }
+            <br/>
+            <Button onClick={() => deleteSelected()}
+                disabled={selectedRows.length < 1}
+                variant="outlined" size={buttonSize}
+                startIcon={<DeleteIcon />}>
+                Selected
+            </Button>
+            <Button onClick={() => changeSelectedStatus(true)}
+                disabled={selectedRows.length < 1}
+                variant="outlined" size={buttonSize}
+                endIcon={<CheckCircle />}>
+                Mark Selected as 
+            </Button>
+            <Button onClick={() => changeSelectedStatus(false)}
+                disabled={selectedRows.length < 1}
+                variant="outlined" size={buttonSize}
+                endIcon={<Cancel />}>
+                Mark Selected as 
+            </Button>
         </>
     ) : (
         <LoginPage />

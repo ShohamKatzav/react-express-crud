@@ -15,8 +15,8 @@ function EditTodoDialog({ closeEditTodoDialog, handleEditDialogSubmit, params, s
                     }}
                 />
                 <div className="button-container">
-                    <button className="promptButton" type="button" onClick={closeEditTodoDialog}>Cancel</button>
-                    <button className="promptButton" type="submit">Submit</button>
+                    <button className="promptButton red" type="button" onClick={closeEditTodoDialog}>Cancel</button>
+                    <button className="promptButton green" type="submit">Submit</button>
                 </div>
             </form>
         </div>
