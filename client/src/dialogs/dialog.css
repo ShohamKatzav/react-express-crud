@@ -17,6 +17,11 @@ input.promptInput {
   padding: 10px;
   margin-bottom: 10px;
 }
+select.promptSelect {
+  width: 95%;
+  padding: 10px;
+  margin-bottom: 10px;
+}
 
 .button-container {
   display: flex;
@@ -25,13 +30,25 @@ input.promptInput {
 
 button.promptButton {
   padding: 10px 20px;
-  background: #007bff;
   color: white;
   border: none;
 }
 
-button.promptButton:hover {
-  background: #0056b3;
+
+button.red {
+  background: #ff0000;
+}
+
+button.red:hover {
+  background: #b31800;
+}
+
+button.green {
+  background: #02a252;
+}
+
+button.green:hover {
+  background: #028f48;
 }
 
 

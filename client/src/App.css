@@ -56,8 +56,13 @@
   flex-direction: column;
   align-items: center;
   height: 65vh;
+  width: 100%;
   margin: 0;
   background-color: #f0f0f0;
+}
+
+h1 {
+  word-break: break-word;
 }
 
 .profile-photo {
@@ -180,7 +185,7 @@ button {
   border: 3px solid black;
 }
 
-.MuiDataGrid-root .MuiDataGrid-cell:nth-child(2) {
+.MuiDataGrid-root .MuiDataGrid-cell:nth-child(3) {
   color: rgba(27, 53, 219, 0.896);
   text-align: start;
   white-space: normal !important;
@@ -188,7 +193,7 @@ button {
   padding-bottom: 0.7rem;
 }
 
-.MuiDataGrid-root .MuiDataGrid-cell:nth-child(2) .MuiDataGrid-cellContent{
+.MuiDataGrid-root .MuiDataGrid-cell:nth-child(3) .MuiDataGrid-cellContent{
   height: 100%;
   padding-top: 1.9rem;
   overflow-y: auto !important;
@@ -234,10 +239,4 @@ button {
   .login-btn a {
     font-size: x-large;
   }
-
-  .new-todo-parameter{
-    display: block;
-    margin-top: 2%;
-  }
-
 }

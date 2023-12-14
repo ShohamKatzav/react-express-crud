@@ -80,6 +80,42 @@ const EditStatus = async (req, res) => {
     }
 };
 
+const DeleteSelected = async (req, res) => {
+    try {
+        await Todo.deleteMany({
+            _id: {
+                $in: req.body.ids
+            }
+        });
+        res.sendStatus(204);
+    }
+    catch (err) {
+        console.error('Failed to delete document:', err);
+        res.sendStatus(500);
+    }
+};
+
+const ChangeSelectedStatus = async (req, res) => {
+    try {
+        await Todo.updateMany({
+            _id: {
+                $in: req.body.ids
+            }
+        },
+        { completed: req.body.completed });
+        const updatedDoc = await Todo.find({
+            _id: {
+                $in: req.body.ids
+            }
+        }).exec();
+        res.send(updatedDoc);
+    }
+    catch (err) {
+        console.error('Failed to update complete for document:', err);
+        res.sendStatus(500);
+    }
+};
+
 module.exports = {
     FetchTodos,
     CleanList,
@@ -87,5 +123,7 @@ module.exports = {
     CreateTodo,
     DeleteTodo,
     EditText,
-    EditStatus
-  };
+    EditStatus,
+    DeleteSelected,
+    ChangeSelectedStatus
+};
