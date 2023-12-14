@@ -122,6 +122,6 @@ I'd would like to express my gratitude to Auth0 for providing a robust authentic
 
 ## Deployment
 
-The project is deployed using [Vercel](https://vercel.com/). You can access the live version here: [TodoApp Live](https://your-vercel-project-url.vercel.app/](https://todo-app-topaz-psi.vercel.app/)https://todo-app-topaz-psi.vercel.app/).
+The project is deployed using [Vercel](https://vercel.com/). You can access the live version here: [TodoApp Live](https://todo-app-topaz-psi.vercel.app/).
 You can use the following login details:
 User Name: Shoham@gmail.com Password: Pa$$w0rd
