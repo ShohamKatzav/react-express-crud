@@ -1,28 +1,63 @@
-/* Footer.css */
 .footer {
-  background-color: #333;
-  color: #fff;
-  position: fixed;
-  left: 0;
-  bottom: 0;
-  width: 100%;
-  height: 10vh;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  z-index: 999;
+  position: relative;
+  z-index: 1;
+  padding: 0 0 2rem;
 }
 
-.container {
+.footer-container {
+  width: min(1180px, calc(100% - 2rem));
   margin: 0 auto;
 }
 
-.container p {
-  margin: 0;
+.footer-panel {
+  border: 1px solid rgba(255, 250, 244, 0.08);
+  background: linear-gradient(180deg, rgba(31, 64, 87, 0.92), rgba(31, 64, 87, 0.74));
+  backdrop-filter: blur(18px);
+  box-shadow: 0 18px 40px rgba(25, 48, 66, 0.12);
+  padding: 1.3rem 1.5rem;
+  border-radius: 1.75rem;
 }
 
-@media screen and (max-width: 768px) {
-  .container {
-    padding: 0 20px;
+.footer-brand-mark {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 1rem;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 244, 0.96), rgba(255, 250, 244, 0.72)),
+    linear-gradient(135deg, rgba(217, 103, 77, 0.18), rgba(216, 164, 61, 0.18));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.footer-title {
+  margin-bottom: 0.3rem !important;
+  color: #fffaf4;
+  font-family: "Palatino Linotype", "Book Antiqua", Georgia, serif !important;
+  font-size: 1.3rem !important;
+  font-weight: 700 !important;
+}
+
+.footer-copy {
+  color: rgba(255, 250, 244, 0.72);
+  max-width: 44ch;
+}
+
+.footer-panel .MuiChip-root {
+  border-color: rgba(255, 250, 244, 0.18);
+  color: #fffaf4;
+}
+
+@media screen and (max-width: 900px) {
+  .footer {
+    padding-bottom: 1.25rem;
+  }
+
+  .footer-container {
+    width: min(100%, calc(100% - 1.2rem));
+  }
+
+  .footer-panel {
+    padding: 1.15rem;
   }
 }

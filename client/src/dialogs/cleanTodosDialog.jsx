@@ -1,9 +1,13 @@
-import { React, useState } from 'react';
+import { useState } from 'react';
 import Button from '@mui/material/Button';
-import DeleteIcon from '@mui/icons-material/Delete';
-import './dialog.css';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Typography from '@mui/material/Typography';
+import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
 
-function CleanTodosDialog({ cleanList, dataToShow, buttonSize, notifyWarning }) {
+function CleanTodosDialog({ cleanList, dataToShow, notifyWarning }) {
 
     const [isCleanListDialogOpen, setIsCleanListDialogOpen] = useState(false);
 
@@ -21,21 +25,29 @@ function CleanTodosDialog({ cleanList, dataToShow, buttonSize, notifyWarning }) 
         <>
             <Button onClick={() => setIsCleanListDialogOpen(true)}
                 disabled={dataToShow.length < 1}
-                variant="outlined" size={buttonSize}
-                startIcon={<DeleteIcon />}>
-                Clean list
+                color="error"
+                variant="outlined"
+                startIcon={<DeleteSweepRoundedIcon />}>
+                Clear list
             </Button>
-            { isCleanListDialogOpen &&
-                <div className="modal">
-                    <form onSubmit={handleCleanListDialogSubmit}>
-                        <p>Are you sure you want to delete all the todos?</p>
-                        <div className="button-container">
-                            <button className="promptButton red" type="button" onClick={cancelCleanListDialog}>Cancel</button>
-                            <button className="promptButton green" type="submit">Submit</button>
-                        </div>
-                    </form>
-                </div>
-            }
+            <Dialog fullWidth maxWidth="xs" onClose={cancelCleanListDialog} open={isCleanListDialogOpen}>
+                <form onSubmit={handleCleanListDialogSubmit}>
+                    <DialogTitle>Clear your list</DialogTitle>
+                    <DialogContent>
+                        <Typography sx={{ color: 'text.secondary' }}>
+                            This will remove all {dataToShow.length} tasks from the current workspace.
+                        </Typography>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                        <Button onClick={cancelCleanListDialog} variant="text">
+                            Cancel
+                        </Button>
+                        <Button color="error" type="submit" variant="contained">
+                            Delete all tasks
+                        </Button>
+                    </DialogActions>
+                </form>
+            </Dialog>
         </>
     );
 }

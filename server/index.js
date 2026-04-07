@@ -1,5 +1,7 @@
+require("dotenv").config({ path: "../.env" });
+
 const express = require("express"),
-  PORT = 5000,
+  PORT = process.env.PORT || 5000,
   app = express();
 
 const cors = require('cors');

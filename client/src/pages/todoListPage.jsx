@@ -1,20 +1,27 @@
-import { React, useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { useGridApiRef } from "@mui/x-data-grid";
 import { toast } from 'react-toastify';
 import { useAuth0 } from "@auth0/auth0-react";
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
+import ListAltRoundedIcon from '@mui/icons-material/ListAltRounded';
+import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import AddToDoDialog from "../dialogs/addTodoDialog";
 import TodoTable from "../components/todoTable";
 import LoginPage from "./loginPage";
-import useGetButtonsSize from "../hooks/useGetButtonsSize";
 import CleanTodosDialog from "../dialogs/cleanTodosDialog";
 import EditTodoDialog from "../dialogs/editTodoDialog";
 import FetchTodoDialog from "../dialogs/fetchTodoDialog";
-
-import Button from '@mui/material/Button';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CheckCircle from "@mui/icons-material/CheckCircle";
-import Cancel from "@mui/icons-material/Cancel";
 
 function TodoListPage() {
 
@@ -25,28 +32,24 @@ function TodoListPage() {
     const [isDataRendered, setIsDataRendered] = useState(true);
     const [todoAdded, setTodoAdded] = useState(false);
     const [config, setConfig] = useState(null);
-
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [params, setParams] = useState({});
-    const fetchAmountRef = useRef(30);
+    const [selectedRows, setSelectedRows] = useState([]);
 
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
 
-    const [selectedRows, setSelectedRows] = useState([]);
-    const buttonSize = useGetButtonsSize();
-
     const notifySuceess = (text) => {
-        toast.dismiss()
+        toast.dismiss();
         toast.success(text);
-    }
+    };
     const notifyWarning = (text) => {
-        toast.dismiss()
+        toast.dismiss();
         toast.warning(text);
-    }
+    };
     const notifyError = (text) => {
-        toast.dismiss()
+        toast.dismiss();
         toast.error(text);
-    }
+    };
 
     const getData = async () => {
         if (isAuthenticated) {
@@ -57,27 +60,24 @@ function TodoListPage() {
                 };
                 setConfig(newConfig);
                 const response = await axios.get(`${baseUrl}/todo`, newConfig);
-                const data = response.data;
-                setDataToShow(data);
-
+                setDataToShow(response.data);
             } catch (e) {
                 console.log(e.message);
             }
-
         }
-    }
+    };
 
     useEffect(() => {
-        if (isAuthenticated)
+        if (isAuthenticated) {
             getData();
+        }
     }, [isAuthenticated]);
 
-    const fetchTodos = async () => {
+    const fetchTodos = async (amount) => {
         try {
-            const response = await axios.post(`${baseUrl}/fetchTodos`, { fetchAmount: fetchAmountRef.current.value }, config);
+            const response = await axios.post(`${baseUrl}/fetchTodos`, { fetchAmount: amount }, config);
             if (response.status === 200) {
-                const newData = [...dataToShow, ...response.data]
-                setDataToShow(newData);
+                setDataToShow((current) => [...current, ...response.data]);
                 setTodoAdded(true);
                 setIsDataRendered(false);
                 notifySuceess("The fetch operation was completed successfully");
@@ -88,8 +88,7 @@ function TodoListPage() {
         } catch (e) {
             console.log(e.message);
         }
-
-    }
+    };
 
     const cleanList = async () => {
         try {
@@ -113,7 +112,7 @@ function TodoListPage() {
             if (response.status === 200) {
                 setTodoAdded(true);
                 setIsDataRendered(false);
-                setDataToShow(current => [...current, response.data]);
+                setDataToShow((current) => [...current, response.data]);
                 notifySuceess("Todo added successfully");
             }
             else {
@@ -122,34 +121,33 @@ function TodoListPage() {
         } catch (e) {
             console.log(e.message);
         }
-    }
+    };
 
     const deleteTodo = async (todo_Id) => {
         try {
-            await axios.delete(`${baseUrl}/todo`, { headers: { Authorization: config.headers.Authorization }, data: { id: todo_Id } })
-            setDataToShow(current => current.filter(x => x._id !== todo_Id));
+            await axios.delete(`${baseUrl}/todo`, { headers: { Authorization: config.headers.Authorization }, data: { id: todo_Id } });
+            setDataToShow((current) => current.filter((item) => item._id !== todo_Id));
             notifySuceess("Todo deleted successfully");
-
         } catch (e) {
             console.log(e.message);
         }
-    }
+    };
 
-    // Check boundaries on delete and move to the last new page on add
+    // Keep pagination in bounds and move to the last page after creating a task.
     useEffect(() => {
         if (dataToShow.length) {
-            if (!isDataRendered)
+            if (!isDataRendered) {
                 setIsDataRendered(true);
+            }
             else {
                 const lastPage = Math.ceil(dataToShow.length / currentPaginationModel.pageSize) - 1;
-                if (currentPaginationModel.page > lastPage || currentPaginationModel.page < lastPage && todoAdded) {
+                if (currentPaginationModel.page > lastPage || (currentPaginationModel.page < lastPage && todoAdded)) {
                     apiRef.current.setPage(lastPage);
                     setTodoAdded(false);
                 }
             }
         }
-    }, [dataToShow, isDataRendered]);
-
+    }, [currentPaginationModel.page, currentPaginationModel.pageSize, dataToShow, isDataRendered, todoAdded]);
 
     const openEditTodoDialog = () => {
         setIsEditDialogOpen(true);
@@ -158,136 +156,260 @@ function TodoListPage() {
         notifyWarning("Edit operation canceled");
         setIsEditDialogOpen(false);
     };
-    const handleEditDialogSubmit = (e) => {
+    const handleEditDialogSubmit = async (e) => {
         e.preventDefault();
-        const index = dataToShow.findIndex(c => c._id === params.id);
-        sendPutRequestAndUpdateState(params, index, "/todo/editText");
+        const index = dataToShow.findIndex((todo) => todo._id === params.id);
+        await sendPutRequestAndUpdateState(params, index, "/todo/editText");
         notifySuceess("Todo edited successfully");
         setIsEditDialogOpen(false);
     };
 
     const editText = (todo_Id) => {
-        const updatedParams = { id: todo_Id, todo: (dataToShow.find(todo => todo._id === todo_Id)).todo };
-        setParams(updatedParams);
+        const todoToEdit = dataToShow.find((todo) => todo._id === todo_Id);
+        setParams({ id: todo_Id, todo: todoToEdit.todo });
         openEditTodoDialog();
-    }
+    };
     const editStatus = (todo_Id) => {
-        const index = dataToShow.findIndex(c => c._id === todo_Id);
-        var params = { id: todo_Id, completed: !(dataToShow.find(c => c._id === todo_Id).completed) };
-        sendPutRequestAndUpdateState(params, index, "/todo/editStatus");
+        const index = dataToShow.findIndex((todo) => todo._id === todo_Id);
+        const nextParams = { id: todo_Id, completed: !dataToShow.find((todo) => todo._id === todo_Id).completed };
+        sendPutRequestAndUpdateState(nextParams, index, "/todo/editStatus");
         notifySuceess("Todo status changed");
-    }
+    };
 
-    const sendPutRequestAndUpdateState = async (params, index, endPoint) => {
+    const sendPutRequestAndUpdateState = async (requestParams, index, endPoint) => {
         try {
-            const response = await axios.put(baseUrl + endPoint, params, config);
-            const newData = [...dataToShow];
-            newData[index] = response.data;
-            setDataToShow(newData);
+            const response = await axios.put(baseUrl + endPoint, requestParams, config);
+            setDataToShow((current) => {
+                const newData = [...current];
+                newData[index] = response.data;
+                return newData;
+            });
         } catch (e) {
             console.log(e.message);
         }
-    }
+    };
 
     const deleteSelected = async () => {
         try {
             await axios.delete(`${baseUrl}/delete-selected`, {
                 headers: { Authorization: config.headers.Authorization }, data: { ids: selectedRows }
-            })
-            setDataToShow(current => current.filter(x => !selectedRows.includes(x._id)));
+            });
+            setDataToShow((current) => current.filter((todo) => !selectedRows.includes(todo._id)));
             notifySuceess("Todos deleted successfully");
-
         } catch (e) {
             console.log(e.message);
         }
-    }
+    };
     const changeSelectedStatus = async (newStatus) => {
         const indexes = [];
-        for (var i = 0; i < selectedRows.length; i++) {
-            const index = dataToShow.findIndex(c => selectedRows[i].includes(c._id));
-            if (dataToShow[index].completed !== newStatus ) indexes.push(index);
+        for (let i = 0; i < selectedRows.length; i++) {
+            const index = dataToShow.findIndex((todo) => selectedRows[i] === todo._id);
+            if (index !== -1 && dataToShow[index].completed !== newStatus) {
+                indexes.push(index);
+            }
         }
-        if (indexes.length === 0){
+        if (indexes.length === 0) {
             notifyWarning("Nothing to change");
             return;
         }
-        var params = { ids: selectedRows, completed: newStatus };
+
+        const requestParams = { ids: selectedRows, completed: newStatus };
         try {
-            const response = await axios.put(`${baseUrl}/change-selected-status`, params, config);
-            const newData = [...dataToShow];
-            indexes.forEach((index) =>{
-                newData[index] = response.data.find(x => x._id == newData[index]._id)
+            const response = await axios.put(`${baseUrl}/change-selected-status`, requestParams, config);
+            setDataToShow((current) => {
+                const newData = [...current];
+                indexes.forEach((index) => {
+                    newData[index] = response.data.find((todo) => todo._id === newData[index]._id);
+                });
+                return newData;
             });
-            setDataToShow(newData);
         } catch (e) {
             console.log(e.message);
         }
         notifySuceess("Todos status changed");
+    };
+
+    if (isLoading) {
+        return (
+            <Box className="page-shell">
+                <Paper className="surface-panel fade-in-up" sx={{ p: 4, borderRadius: '36px', textAlign: 'center' }}>
+                    <Stack alignItems="center" spacing={2}>
+                        <CircularProgress color="secondary" />
+                        <Typography variant="h5">Loading your workspace...</Typography>
+                    </Stack>
+                </Paper>
+            </Box>
+        );
     }
 
-    if (isLoading)
-        return <h1>Loading...</h1>
+    const totalTodos = dataToShow.length;
+    const completedTodos = dataToShow.filter((todo) => todo.completed).length;
+    const remainingTodos = totalTodos - completedTodos;
+    const completionRate = totalTodos ? `${Math.round((completedTodos / totalTodos) * 100)}%` : '0%';
+
+    const stats = [
+        {
+            label: 'Tasks in play',
+            value: totalTodos,
+            helper: 'Everything currently on your list',
+            accent: 'rgba(217, 103, 77, 0.14)',
+            icon: <ListAltRoundedIcon color="secondary" />,
+        },
+        {
+            label: 'Completed',
+            value: completedTodos,
+            helper: 'Work you have already wrapped up',
+            accent: 'rgba(63, 138, 105, 0.12)',
+            icon: <TaskAltRoundedIcon color="success" />,
+        },
+        {
+            label: 'Completion rate',
+            value: completionRate,
+            helper: `${remainingTodos} still in focus`,
+            accent: 'rgba(216, 164, 61, 0.15)',
+            icon: <AutoAwesomeRoundedIcon sx={{ color: '#d8a43d' }} />,
+        },
+    ];
 
     return isAuthenticated ? (
-        <>
-            <h1>Manage Your Todos Here</h1>
-            <TodoTable
-                dataToShow={dataToShow}
-                deleteTodo={deleteTodo}
-                editText={editText}
-                editStatus={editStatus}
-                setCurrentPaginationModel={setCurrentPaginationModel}
-                apiRef={apiRef}
-                setSelectedRows={setSelectedRows}
+        <Box className="page-shell">
+            <Paper className="surface-panel fade-in-up" sx={{ p: { xs: 2.2, md: 3.5 }, borderRadius: '36px' }}>
+                <Stack direction={{ xs: 'column', xl: 'row' }} justifyContent="space-between" spacing={3}>
+                    <Box sx={{ maxWidth: 690 }}>
+                        <p className="eyebrow">Daily command center</p>
+                        <Typography className="page-title" sx={{ fontSize: { xs: '2.4rem', md: '4rem' } }} variant="h1">
+                            Manage your tasks with more clarity and less friction.
+                        </Typography>
+                        <Typography className="page-subtitle" sx={{ mt: 1.4 }}>
+                            Add new work, import sample items, batch-update progress, and keep your momentum visible from one bright workspace.
+                        </Typography>
+                        <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mt: 2.4 }}>
+                            <Chip label={`${selectedRows.length} selected`} variant="outlined" />
+                            <Chip color="secondary" label={`${remainingTodos} in focus`} variant="outlined" />
+                            <Chip color="success" label={`${completedTodos} completed`} variant="outlined" />
+                        </Stack>
+                    </Box>
+
+                    <Stack direction={{ xs: 'column', sm: 'row', xl: 'column' }} spacing={1.4} sx={{ minWidth: { xl: 280 } }}>
+                        {stats.map((stat, index) => (
+                            <Paper
+                                key={stat.label}
+                                className={`fade-in-up stagger-${index + 1}`}
+                                sx={{
+                                    p: 2,
+                                    borderRadius: '24px',
+                                    border: '1px solid rgba(31, 64, 87, 0.08)',
+                                    background: stat.accent,
+                                    minWidth: { sm: 190, xl: 'auto' },
+                                }}
+                                variant="outlined"
+                            >
+                                <Stack direction="row" spacing={1.4}>
+                                    <Box
+                                        sx={{
+                                            width: 48,
+                                            height: 48,
+                                            borderRadius: '18px',
+                                            display: 'grid',
+                                            placeItems: 'center',
+                                            background: 'rgba(255, 250, 244, 0.72)',
+                                            flexShrink: 0,
+                                        }}
+                                    >
+                                        {stat.icon}
+                                    </Box>
+                                    <Box>
+                                        <Typography sx={{ color: 'text.secondary', fontSize: '0.84rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                                            {stat.label}
+                                        </Typography>
+                                        <Typography sx={{ fontSize: '1.7rem', fontWeight: 800, lineHeight: 1.1, mt: 0.35 }}>
+                                            {stat.value}
+                                        </Typography>
+                                        <Typography sx={{ color: 'text.secondary', fontSize: '0.9rem', mt: 0.3 }}>
+                                            {stat.helper}
+                                        </Typography>
+                                    </Box>
+                                </Stack>
+                            </Paper>
+                        ))}
+                    </Stack>
+                </Stack>
+            </Paper>
+
+            <Paper className="surface-panel fade-in-up stagger-2" sx={{ p: { xs: 2, md: 3 }, borderRadius: '32px' }}>
+                <Stack spacing={2.3}>
+                    <Stack direction={{ xs: 'column', lg: 'row' }} justifyContent="space-between" spacing={2}>
+                        <Box>
+                            <Typography variant="h3">Task studio</Typography>
+                            <Typography sx={{ color: 'text.secondary', mt: 0.6 }}>
+                                Shape the list from here, then use the grid below to review or batch-edit tasks.
+                            </Typography>
+                        </Box>
+                        <Stack direction="row" flexWrap="wrap" gap={1}>
+                            <AddToDoDialog
+                                addTodo={addTodo}
+                                notifyError={notifyError}
+                                notifyWarning={notifyWarning}
+                            />
+                            <FetchTodoDialog
+                                fetchTodos={fetchTodos}
+                                notifyWarning={notifyWarning}
+                            />
+                            <CleanTodosDialog
+                                cleanList={cleanList}
+                                dataToShow={dataToShow}
+                                notifyWarning={notifyWarning}
+                            />
+                            <Button
+                                color="error"
+                                disabled={selectedRows.length < 1}
+                                onClick={() => deleteSelected()}
+                                startIcon={<DeleteSweepRoundedIcon />}
+                                variant="outlined"
+                            >
+                                Delete selected
+                            </Button>
+                            <Button
+                                color="success"
+                                disabled={selectedRows.length < 1}
+                                onClick={() => changeSelectedStatus(true)}
+                                startIcon={<CheckCircleRoundedIcon />}
+                                variant="outlined"
+                            >
+                                Mark selected done
+                            </Button>
+                            <Button
+                                color="warning"
+                                disabled={selectedRows.length < 1}
+                                onClick={() => changeSelectedStatus(false)}
+                                startIcon={<RadioButtonUncheckedRoundedIcon />}
+                                variant="outlined"
+                            >
+                                Mark selected active
+                            </Button>
+                        </Stack>
+                    </Stack>
+
+                    <TodoTable
+                        apiRef={apiRef}
+                        dataToShow={dataToShow}
+                        deleteTodo={deleteTodo}
+                        editStatus={editStatus}
+                        editText={editText}
+                        setCurrentPaginationModel={setCurrentPaginationModel}
+                        setSelectedRows={setSelectedRows}
+                    />
+                </Stack>
+            </Paper>
+
+            <EditTodoDialog
+                closeEditTodoDialog={closeEditTodoDialog}
+                handleEditDialogSubmit={handleEditDialogSubmit}
+                open={isEditDialogOpen}
+                params={params}
+                setParams={setParams}
             />
-            <div className="small-margin-top"></div>
-            <AddToDoDialog
-                addTodo={addTodo}
-                buttonSize={buttonSize}
-                notifyError={notifyError}
-                notifyWarning={notifyWarning}
-            />
-            <FetchTodoDialog
-                fetchTodos={fetchTodos}
-                fetchAmountRef={fetchAmountRef}
-                buttonSize={buttonSize}
-                notifyWarning={notifyWarning}
-            />
-            <CleanTodosDialog
-                cleanList={cleanList}
-                dataToShow={dataToShow}
-                buttonSize={buttonSize}
-                notifyWarning={notifyWarning}
-            />
-            {
-                isEditDialogOpen &&
-                <EditTodoDialog
-                    handleEditDialogSubmit={handleEditDialogSubmit}
-                    closeEditTodoDialog={closeEditTodoDialog}
-                    params={params}
-                    setParams={setParams}
-                />
-            }
-            <br/>
-            <Button onClick={() => deleteSelected()}
-                disabled={selectedRows.length < 1}
-                variant="outlined" size={buttonSize}
-                startIcon={<DeleteIcon />}>
-                Selected
-            </Button>
-            <Button onClick={() => changeSelectedStatus(true)}
-                disabled={selectedRows.length < 1}
-                variant="outlined" size={buttonSize}
-                endIcon={<CheckCircle />}>
-                Mark Selected as 
-            </Button>
-            <Button onClick={() => changeSelectedStatus(false)}
-                disabled={selectedRows.length < 1}
-                variant="outlined" size={buttonSize}
-                endIcon={<Cancel />}>
-                Mark Selected as 
-            </Button>
-        </>
+        </Box>
     ) : (
         <LoginPage />
     );

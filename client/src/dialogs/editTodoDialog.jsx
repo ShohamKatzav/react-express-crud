@@ -1,25 +1,40 @@
-import { React } from 'react';
-import './dialog.css';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
 
-function EditTodoDialog({ closeEditTodoDialog, handleEditDialogSubmit, params, setParams }) {
+function EditTodoDialog({ open, closeEditTodoDialog, handleEditDialogSubmit, params, setParams }) {
     return (
-        <div className="modal">
+        <Dialog fullWidth maxWidth="sm" onClose={closeEditTodoDialog} open={open}>
             <form onSubmit={handleEditDialogSubmit}>
-                <p>Please enter a new To-do value</p>
-                <input className="promptInput"
-                    type="text"
-                    defaultValue={params.todo}
-                    onChange={(e) => {
-                        const updatedParams = { ...params, todo: e.target.value };
-                        setParams(updatedParams);
-                    }}
-                />
-                <div className="button-container">
-                    <button className="promptButton red" type="button" onClick={closeEditTodoDialog}>Cancel</button>
-                    <button className="promptButton green" type="submit">Submit</button>
-                </div>
+                <DialogTitle>Refine your task</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        fullWidth
+                        label="Task description"
+                        multiline
+                        minRows={2}
+                        onChange={(e) => {
+                            const updatedParams = { ...params, todo: e.target.value };
+                            setParams(updatedParams);
+                        }}
+                        sx={{ mt: 1 }}
+                        value={params.todo || ""}
+                    />
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                    <Button onClick={closeEditTodoDialog} variant="text">
+                        Cancel
+                    </Button>
+                    <Button color="secondary" type="submit" variant="contained">
+                        Save changes
+                    </Button>
+                </DialogActions>
             </form>
-        </div>
+        </Dialog>
     );
 }
 

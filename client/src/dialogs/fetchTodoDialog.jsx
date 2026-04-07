@@ -1,45 +1,70 @@
-import { React, useState } from 'react';
+import { useState } from 'react';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import './dialog.css';
+import MenuItem from '@mui/material/MenuItem';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 
-function FetchTodoDialog({ fetchTodos, fetchAmountRef, buttonSize, notifyWarning }) {
+function FetchTodoDialog({ fetchTodos, notifyWarning }) {
 
     const [isFetchDialogOpen, setIsFetchDialogOpen] = useState(false);
+    const [fetchAmount, setFetchAmount] = useState(10);
 
     const cancelFetchTodoDialog = () => {
         notifyWarning("Fetch operation canceled");
         setIsFetchDialogOpen(false);
     };
-    const handleFetchDialogSubmit = (e) =>{
+    const handleFetchDialogSubmit = (e) => {
         e.preventDefault();
         setIsFetchDialogOpen(false);
-        fetchTodos();
+        fetchTodos(fetchAmount);
     }
 
     return (
         <>
             <Button onClick={() => setIsFetchDialogOpen(true)}
-                variant="outlined" size={buttonSize}
+                variant="outlined"
                 startIcon={<FileDownloadIcon />}>
-                Fetch
+                Import sample tasks
             </Button>
-            {isFetchDialogOpen &&
-                <div className="modal">
-                    <form onSubmit={handleFetchDialogSubmit}>
-                        <p>Choose an amount to fetch:</p>
-                        <div>
-                            <select ref={fetchAmountRef} className='promptSelect' name="fetch" id="fetch" defaultValue={30}>
-                                {[1, 5, 10, 20, 30, 100].map(x => <option key={x} value={x}>{x}</option>)}
-                            </select>
-                        </div>
-                        <div className="button-container">
-                            <button className="promptButton red" type="button" onClick={cancelFetchTodoDialog}>Cancel</button>
-                            <button className="promptButton green" type="submit">Submit</button>
-                        </div>
-                    </form>
-                </div>
-            }
+            <Dialog fullWidth maxWidth="xs" onClose={cancelFetchTodoDialog} open={isFetchDialogOpen}>
+                <form onSubmit={handleFetchDialogSubmit}>
+                    <DialogTitle>Import sample tasks</DialogTitle>
+                    <DialogContent>
+                        <Stack spacing={1.8} sx={{ pt: 1 }}>
+                            <Typography sx={{ color: 'text.secondary' }}>
+                                Pull in a quick batch of demo todos to populate the workspace.
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                label="How many tasks?"
+                                onChange={(event) => setFetchAmount(Number(event.target.value))}
+                                select
+                                value={fetchAmount}
+                            >
+                                {[1, 5, 10, 20, 30, 100].map((value) => (
+                                    <MenuItem key={value} value={value}>
+                                        {value}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions sx={{ px: 3, pb: 2.5 }}>
+                        <Button onClick={cancelFetchTodoDialog} variant="text">
+                            Cancel
+                        </Button>
+                        <Button type="submit" variant="contained">
+                            Import
+                        </Button>
+                    </DialogActions>
+                </form>
+            </Dialog>
         </>
     );
 }

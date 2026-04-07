@@ -1,113 +1,242 @@
-
-import React from "react";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, GridToolbarQuickFilter } from "@mui/x-data-grid";
+import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import IconButton from "@mui/material/IconButton";
+import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import CheckCircle from "@mui/icons-material/CheckCircle";
-import Cancel from "@mui/icons-material/Cancel";
+import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
+import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+
+function TodoToolbar() {
+    return (
+        <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            justifyContent="space-between"
+            spacing={1.5}
+            sx={{ px: 0.5, pb: 1.5 }}
+        >
+            <Box>
+                <Typography sx={{ fontWeight: 700 }} variant="h6">
+                    Your task list
+                </Typography>
+                <Typography sx={{ color: 'text.secondary' }}>
+                    Search, select, and update tasks directly from the grid.
+                </Typography>
+            </Box>
+            <Box
+                sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    px: 1.4,
+                    py: 0.8,
+                    borderRadius: 999,
+                    border: '1px solid rgba(31, 64, 87, 0.12)',
+                    background: 'rgba(255, 250, 244, 0.7)',
+                    minWidth: { xs: '100%', md: 260 },
+                }}
+            >
+                <SearchRoundedIcon color="action" fontSize="small" />
+                <GridToolbarQuickFilter
+                    debounceMs={250}
+                    quickFilterParser={(searchInput) =>
+                        searchInput.split(',').map((value) => value.trim()).filter(Boolean)
+                    }
+                />
+            </Box>
+        </Stack>
+    );
+}
+
+function EmptyState() {
+    return (
+        <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ height: '100%', py: 5 }}>
+            <Typography variant="h6">Nothing here yet</Typography>
+            <Typography sx={{ color: 'text.secondary', maxWidth: 34 + 'ch', textAlign: 'center' }}>
+                Add your first task or import a sample batch to bring the workspace to life.
+            </Typography>
+        </Stack>
+    );
+}
 
 function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPaginationModel, apiRef, setSelectedRows }) {
 
     const columns =
         [
-            { field: '_id', flex: 0.2, headerName: "ID", valueGetter: (params) => params.row._id.slice(-3)},
-            { field: 'todo', flex: 1.0, headerName: "To Do" },
+            {
+                field: '_id',
+                headerName: "Ref",
+                minWidth: 110,
+                sortable: false,
+                renderCell: (params) => (
+                    <Chip
+                        label={`#${params.row._id.slice(-4).toUpperCase()}`}
+                        size="small"
+                        variant="outlined"
+                    />
+                ),
+            },
+            {
+                field: 'todo',
+                flex: 1.2,
+                headerName: "Task",
+                minWidth: 240,
+                renderCell: (params) => (
+                    <Box sx={{ py: 1.6, width: '100%' }}>
+                        <Typography
+                            sx={{
+                                whiteSpace: 'normal',
+                                lineHeight: 1.5,
+                                fontWeight: 700,
+                                color: params.row.completed ? 'text.secondary' : 'text.primary',
+                                textDecoration: params.row.completed ? 'line-through' : 'none',
+                            }}
+                        >
+                            {params.value}
+                        </Typography>
+                    </Box>
+                ),
+            },
             {
                 field: "completed",
-                flex: 0.2,
+                flex: 0.45,
                 headerName: "Status",
+                minWidth: 140,
                 sortable: false,
                 renderCell: (params) => {
                     const onClick = (e) => {
                         e.stopPropagation();
-                        const thisRow = returnRowByParams(params);
-                        return editStatus(thisRow._id);
+                        return editStatus(params.row._id);
                     };
                     return (
-                        <IconButton onClick={onClick} color="primary">
-                            {params.value ? <CheckCircle /> : <Cancel />}
-                        </IconButton>
+                        <Chip
+                            clickable
+                            color={params.value ? 'success' : 'warning'}
+                            icon={params.value ? <TaskAltRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
+                            label={params.value ? 'Done' : 'In focus'}
+                            onClick={onClick}
+                            variant={params.value ? 'filled' : 'outlined'}
+                        />
                     );
                 },
                 type: 'boolean'
             },
             {
-                field: "edit",
-                flex: 0.2,
-                headerName: "Edit",
-                description: 'Edit todo text',
+                field: "actions",
+                flex: 0.45,
+                headerName: "Actions",
+                minWidth: 140,
                 sortable: false,
                 renderCell: (params) => {
-                    const onClick = (e) => {
-                        e.stopPropagation();
-                        const thisRow = returnRowByParams(params);
-                        return editText(thisRow._id);
+                    const handleEdit = (event) => {
+                        event.stopPropagation();
+                        editText(params.row._id);
+                    };
+                    const handleDelete = (event) => {
+                        event.stopPropagation();
+                        deleteTodo(params.row._id);
                     };
 
-                    return <IconButton onClick={onClick} color="primary">
-                        <EditIcon />
-                    </IconButton>
-                }
-            },
-            {
-                field: "delete",
-                flex: 0.2,
-                headerName: "Delete",
-                description: 'Delete todo',
-                sortable: false,
-                renderCell: (params) => {
-                    const onClick = (e) => {
-                        e.stopPropagation(); // don't select this row after clicking
-                        const thisRow = returnRowByParams(params);
-                        return deleteTodo(thisRow._id);
-                    };
-
-                    return <IconButton onClick={onClick} color="primary">
-                        <DeleteIcon />
-                    </IconButton>
+                    return (
+                        <Stack direction="row" spacing={0.6}>
+                            <Tooltip title="Edit task">
+                                <IconButton color="primary" onClick={handleEdit}>
+                                    <EditIcon />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete task">
+                                <IconButton color="error" onClick={handleDelete}>
+                                    <DeleteIcon />
+                                </IconButton>
+                            </Tooltip>
+                        </Stack>
+                    );
                 }
             },
 
         ]
-    const returnRowByParams = (params) => {
-        const api = params.api;
-        const thisRow = {};
-        api
-            .getAllColumns()
-            .filter((c) =>
-                c.field !== "__check__" && !!c)
-            .forEach((c) => (thisRow[c.field] = params.row[c.field]));
-        return thisRow;
-    }
 
     return (
-        <>
-            {dataToShow &&
-                <div className="table-container">
-                    <div className="todoTable">
-                        <DataGrid
-                            rows={dataToShow}
-                            getRowId={(row) => row._id}
-                            columns={columns}
-                            apiRef={apiRef}
-                            initialState={{
-                                pagination: {
-                                    paginationModel: { page: 0, pageSize: 5 }
-                                }
-                            }}
-                            pageSizeOptions={[5, 10, 25, 100]}
-                            onPaginationModelChange={(newModel) => (setCurrentPaginationModel(newModel))}
-                            onRowSelectionModelChange={(newRowSelectionModel) => {
-                                setSelectedRows(newRowSelectionModel);
-                            }}
-                            checkboxSelection
-                            disableRowSelectionOnClick
-                        />
-                    </div>
-                </div>
-            }
-        </>
+        dataToShow && (
+            <Box sx={{ width: '100%' }}>
+                <DataGrid
+                    apiRef={apiRef}
+                    checkboxSelection
+                    columns={columns}
+                    density="comfortable"
+                    disableColumnMenu
+                    disableRowSelectionOnClick
+                    getRowClassName={(params) => (params.row.completed ? 'todo-row--complete' : '')}
+                    getRowHeight={() => 'auto'}
+                    getRowId={(row) => row._id}
+                    initialState={{
+                        pagination: {
+                            paginationModel: { page: 0, pageSize: 5 }
+                        }
+                    }}
+                    onPaginationModelChange={(newModel) => setCurrentPaginationModel(newModel)}
+                    onRowSelectionModelChange={(newRowSelectionModel) => {
+                        setSelectedRows(newRowSelectionModel);
+                    }}
+                    pageSizeOptions={[5, 10, 25, 100]}
+                    rows={dataToShow}
+                    slots={{
+                        toolbar: TodoToolbar,
+                        noRowsOverlay: EmptyState,
+                    }}
+                    sx={{
+                        minHeight: 460,
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        '& .MuiDataGrid-toolbarContainer': {
+                            px: 0,
+                            pt: 0,
+                        },
+                        '& .MuiDataGrid-columnHeaders': {
+                            borderBottom: '1px solid rgba(31, 64, 87, 0.1)',
+                            backgroundColor: 'rgba(255, 250, 244, 0.6)',
+                            borderRadius: '18px 18px 0 0',
+                        },
+                        '& .MuiDataGrid-columnHeaderTitle': {
+                            fontWeight: 800,
+                        },
+                        '& .MuiDataGrid-cell': {
+                            alignItems: 'flex-start',
+                            borderBottom: '1px solid rgba(31, 64, 87, 0.08)',
+                            py: 0.4,
+                        },
+                        '& .MuiDataGrid-row': {
+                            backgroundColor: 'rgba(255, 250, 244, 0.36)',
+                        },
+                        '& .MuiDataGrid-row:hover': {
+                            backgroundColor: 'rgba(217, 103, 77, 0.08)',
+                        },
+                        '& .MuiDataGrid-row.todo-row--complete': {
+                            backgroundColor: 'rgba(63, 138, 105, 0.06)',
+                        },
+                        '& .MuiDataGrid-footerContainer': {
+                            borderTop: '1px solid rgba(31, 64, 87, 0.1)',
+                        },
+                        '& .MuiDataGrid-virtualScroller': {
+                            minHeight: 340,
+                        },
+                        '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-cell:focus-within, & .MuiDataGrid-columnHeader:focus-within': {
+                            outline: 'none',
+                        },
+                        '& .MuiDataGrid-toolbarContainer .MuiInputBase-root': {
+                            width: '100%',
+                        },
+                        '& .MuiDataGrid-toolbarContainer .MuiInputBase-input': {
+                            py: 0.4,
+                        },
+                    }}
+                />
+            </Box>
+        )
     );
 }
 export default TodoTable;

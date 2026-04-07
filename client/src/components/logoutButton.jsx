@@ -1,14 +1,21 @@
-import React from "react";
 import { useAuth0 } from "@auth0/auth0-react";
-import { Link } from "react-router-dom";
+import MenuItem from '@mui/material/MenuItem';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 
-const LogoutButton = () => {
+const LogoutButton = ({ onClick }) => {
   const { logout, isAuthenticated } = useAuth0();
 
-  return isAuthenticated &&
-    <Link onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
+  return isAuthenticated ? (
+    <MenuItem
+      onClick={() => {
+        onClick?.();
+        logout({ logoutParams: { returnTo: window.location.origin } });
+      }}
+    >
+      <LogoutRoundedIcon fontSize="small" sx={{ mr: 1.2 }} />
       Log Out
-    </Link>
+    </MenuItem>
+  ) : null;
 };
 
 export default LogoutButton;
