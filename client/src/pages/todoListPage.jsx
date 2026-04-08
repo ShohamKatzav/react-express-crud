@@ -4,7 +4,6 @@ import { useGridApiRef } from "@mui/x-data-grid";
 import { toast } from 'react-toastify';
 import { useAuth0 } from "@auth0/auth0-react";
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';

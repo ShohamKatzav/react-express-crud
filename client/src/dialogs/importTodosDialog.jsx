@@ -122,7 +122,7 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
         try {
             const buffer = await file.arrayBuffer();
             const XLSX = await import('xlsx');
-            const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
+            const workbook = XLSX.read(buffer, { type: 'array', cellDates: false });
             const firstSheetName = workbook.SheetNames[0];
             const firstSheet = workbook.Sheets[firstSheetName];
             const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: '', raw: true });
@@ -176,7 +176,7 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
                 startIcon={<UploadFileRoundedIcon />}
                 variant="outlined"
             >
-                Import Excel
+                Import Tasks
             </Button>
             <Dialog fullWidth maxWidth="md" onClose={() => closeDialog()} open={open}>
                 <DialogTitle>Import tasks</DialogTitle>

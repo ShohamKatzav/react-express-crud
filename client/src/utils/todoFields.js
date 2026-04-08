@@ -102,6 +102,8 @@ export const parseDueDateValue = (value) => {
             return { value: '', valid: false, message: 'Due date is not a valid calendar date.' };
         }
 
+        // If a Date object does show up here, preserve the local calendar date that the
+        // user would see in the spreadsheet or browser rather than converting timezones.
         return {
             value: `${value.getFullYear()}-${padDate(value.getMonth() + 1)}-${padDate(value.getDate())}`,
             valid: true,
