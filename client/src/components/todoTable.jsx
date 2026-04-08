@@ -8,10 +8,17 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
+import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 
-function TodoToolbar() {
+function TodoToolbar({ statusCounts, statusFilter, setStatusFilter }) {
+    const filterOptions = [
+        { key: 'all', label: 'All', count: statusCounts.all },
+        { key: 'active', label: 'In focus', count: statusCounts.active },
+        { key: 'done', label: 'Done', count: statusCounts.done },
+    ];
+
     return (
         <Stack
             direction={{ xs: 'column', md: 'row' }}
@@ -26,6 +33,20 @@ function TodoToolbar() {
                 <Typography sx={{ color: 'text.secondary' }}>
                     Search, select, and update tasks directly from the grid.
                 </Typography>
+                <Stack direction="row" flexWrap="wrap" gap={0.8} sx={{ mt: 1.3 }}>
+                    {filterOptions.map((option) => (
+                        <Chip
+                            clickable
+                            color={statusFilter === option.key ? 'secondary' : 'default'}
+                            icon={<FilterListRoundedIcon />}
+                            key={option.key}
+                            label={`${option.label} (${option.count})`}
+                            onClick={() => setStatusFilter(option.key)}
+                            size="small"
+                            variant={statusFilter === option.key ? 'filled' : 'outlined'}
+                        />
+                    ))}
+                </Stack>
             </Box>
             <Box
                 sx={{
@@ -73,7 +94,19 @@ function LoadingState() {
     );
 }
 
-function TodoTable({ dataToShow, deleteTodo, editText, editStatus, isLoading, setCurrentPaginationModel, apiRef, setSelectedRows }) {
+function TodoTable({
+    dataToShow,
+    deleteTodo,
+    editText,
+    editStatus,
+    isLoading,
+    setCurrentPaginationModel,
+    apiRef,
+    setSelectedRows,
+    statusCounts,
+    statusFilter,
+    setStatusFilter,
+}) {
 
     const columns =
         [
@@ -198,11 +231,18 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, isLoading, se
                         setSelectedRows(newRowSelectionModel);
                     }}
                     pageSizeOptions={[5, 10, 25, 100]}
-                    rows={dataToShow}
+                rows={dataToShow}
                     slots={{
                         toolbar: TodoToolbar,
                         loadingOverlay: LoadingState,
                         noRowsOverlay: EmptyState,
+                    }}
+                    slotProps={{
+                        toolbar: {
+                            statusCounts,
+                            statusFilter,
+                            setStatusFilter,
+                        },
                     }}
                     sx={{
                         minHeight: 460,

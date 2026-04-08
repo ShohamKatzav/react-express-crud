@@ -36,6 +36,7 @@ function TodoListPage() {
     const [params, setParams] = useState({});
     const [selectedRows, setSelectedRows] = useState([]);
     const [isTodosLoading, setIsTodosLoading] = useState(false);
+    const [statusFilter, setStatusFilter] = useState('all');
 
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
 
@@ -50,6 +51,13 @@ function TodoListPage() {
     const notifyError = (text) => {
         toast.dismiss();
         toast.error(text);
+    };
+
+    const updateGridPage = (page) => {
+        apiRef.current?.setPaginationModel?.({
+            page,
+            pageSize: currentPaginationModel.pageSize,
+        });
     };
 
     const getData = async () => {
@@ -77,6 +85,10 @@ function TodoListPage() {
         }
     }, [isAuthenticated]);
 
+    useEffect(() => {
+        updateGridPage(0);
+    }, [statusFilter]);
+
     const fetchTodos = async (amount) => {
         try {
             const response = await axios.post(`${baseUrl}/fetchTodos`, { fetchAmount: amount }, config);
@@ -98,7 +110,7 @@ function TodoListPage() {
         try {
             const response = await axios.delete(`${baseUrl}/cleanList`, config);
             if (response.status === 204) {
-                apiRef.current.setPage(0);
+                updateGridPage(0);
                 setDataToShow([]);
                 notifySuceess("The clean operation was completed successfully");
             }
@@ -146,7 +158,7 @@ function TodoListPage() {
             else {
                 const lastPage = Math.ceil(dataToShow.length / currentPaginationModel.pageSize) - 1;
                 if (currentPaginationModel.page > lastPage || (currentPaginationModel.page < lastPage && todoAdded)) {
-                    apiRef.current.setPage(lastPage);
+                    updateGridPage(lastPage);
                     setTodoAdded(false);
                 }
             }
@@ -250,6 +262,20 @@ function TodoListPage() {
     const completedTodos = dataToShow.filter((todo) => todo.completed).length;
     const remainingTodos = totalTodos - completedTodos;
     const completionRate = totalTodos ? `${Math.round((completedTodos / totalTodos) * 100)}%` : '0%';
+    const filteredTodos = dataToShow.filter((todo) => {
+        if (statusFilter === 'done') {
+            return todo.completed;
+        }
+        if (statusFilter === 'active') {
+            return !todo.completed;
+        }
+        return true;
+    });
+    const statusCounts = {
+        all: totalTodos,
+        active: remainingTodos,
+        done: completedTodos,
+    };
 
     const stats = [
         {
@@ -396,13 +422,16 @@ function TodoListPage() {
 
                     <TodoTable
                         apiRef={apiRef}
-                        dataToShow={dataToShow}
+                        dataToShow={filteredTodos}
                         deleteTodo={deleteTodo}
                         editStatus={editStatus}
                         editText={editText}
                         isLoading={isTodosLoading}
                         setCurrentPaginationModel={setCurrentPaginationModel}
                         setSelectedRows={setSelectedRows}
+                        statusCounts={statusCounts}
+                        statusFilter={statusFilter}
+                        setStatusFilter={setStatusFilter}
                     />
                 </Stack>
             </Paper>
