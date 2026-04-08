@@ -10,7 +10,6 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 
 function TodoToolbar() {
     return (
@@ -41,7 +40,6 @@ function TodoToolbar() {
                     minWidth: { xs: '100%', md: 260 },
                 }}
             >
-                <SearchRoundedIcon color="action" fontSize="small" />
                 <GridToolbarQuickFilter
                     debounceMs={250}
                     quickFilterParser={(searchInput) =>
@@ -84,6 +82,7 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, isLoading, se
                 headerName: "Ref",
                 minWidth: 110,
                 sortable: false,
+                cellClassName: 'todo-table__cell--centered',
                 renderCell: (params) => (
                     <Chip
                         label={`#${params.row._id.slice(-4).toUpperCase()}`}
@@ -97,6 +96,7 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, isLoading, se
                 flex: 1.2,
                 headerName: "Task",
                 minWidth: 240,
+                cellClassName: 'todo-table__cell--task',
                 renderCell: (params) => (
                     <Box sx={{ py: 1.6, width: '100%' }}>
                         <Typography
@@ -119,6 +119,7 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, isLoading, se
                 headerName: "Status",
                 minWidth: 140,
                 sortable: false,
+                cellClassName: 'todo-table__cell--centered',
                 renderCell: (params) => {
                     const onClick = (e) => {
                         e.stopPropagation();
@@ -143,6 +144,7 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, isLoading, se
                 headerName: "Actions",
                 minWidth: 140,
                 sortable: false,
+                cellClassName: 'todo-table__cell--centered',
                 renderCell: (params) => {
                     const handleEdit = (event) => {
                         event.stopPropagation();
@@ -219,9 +221,15 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, isLoading, se
                             fontWeight: 800,
                         },
                         '& .MuiDataGrid-cell': {
-                            alignItems: 'flex-start',
+                            alignItems: 'center',
                             borderBottom: '1px solid rgba(31, 64, 87, 0.08)',
                             py: 0.4,
+                        },
+                        '& .todo-table__cell--task': {
+                            alignItems: 'flex-start',
+                        },
+                        '& .todo-table__cell--centered': {
+                            alignItems: 'center',
                         },
                         '& .MuiDataGrid-row': {
                             backgroundColor: 'rgba(255, 250, 244, 0.36)',
