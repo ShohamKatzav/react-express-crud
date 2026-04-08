@@ -35,6 +35,7 @@ function TodoListPage() {
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [params, setParams] = useState({});
     const [selectedRows, setSelectedRows] = useState([]);
+    const [isTodosLoading, setIsTodosLoading] = useState(false);
 
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
 
@@ -53,6 +54,7 @@ function TodoListPage() {
 
     const getData = async () => {
         if (isAuthenticated) {
+            setIsTodosLoading(true);
             try {
                 const accessToken = await getAccessTokenSilently();
                 const newConfig = {
@@ -63,6 +65,8 @@ function TodoListPage() {
                 setDataToShow(response.data);
             } catch (e) {
                 console.log(e.message);
+            } finally {
+                setIsTodosLoading(false);
             }
         }
     };
@@ -396,6 +400,7 @@ function TodoListPage() {
                         deleteTodo={deleteTodo}
                         editStatus={editStatus}
                         editText={editText}
+                        isLoading={isTodosLoading}
                         setCurrentPaginationModel={setCurrentPaginationModel}
                         setSelectedRows={setSelectedRows}
                     />

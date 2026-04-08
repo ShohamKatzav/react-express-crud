@@ -1,6 +1,7 @@
 import { DataGrid, GridToolbarQuickFilter } from "@mui/x-data-grid";
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from "@mui/material/IconButton";
 import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
@@ -63,7 +64,18 @@ function EmptyState() {
     );
 }
 
-function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPaginationModel, apiRef, setSelectedRows }) {
+function LoadingState() {
+    return (
+        <Stack alignItems="center" justifyContent="center" spacing={1.5} sx={{ height: '100%', py: 5 }}>
+            <CircularProgress color="secondary" size={34} />
+            <Typography sx={{ color: 'text.secondary' }}>
+                Loading your tasks...
+            </Typography>
+        </Stack>
+    );
+}
+
+function TodoTable({ dataToShow, deleteTodo, editText, editStatus, isLoading, setCurrentPaginationModel, apiRef, setSelectedRows }) {
 
     const columns =
         [
@@ -173,6 +185,7 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
                     getRowClassName={(params) => (params.row.completed ? 'todo-row--complete' : '')}
                     getRowHeight={() => 'auto'}
                     getRowId={(row) => row._id}
+                    loading={isLoading}
                     initialState={{
                         pagination: {
                             paginationModel: { page: 0, pageSize: 5 }
@@ -186,6 +199,7 @@ function TodoTable({ dataToShow, deleteTodo, editText, editStatus, setCurrentPag
                     rows={dataToShow}
                     slots={{
                         toolbar: TodoToolbar,
+                        loadingOverlay: LoadingState,
                         noRowsOverlay: EmptyState,
                     }}
                     sx={{

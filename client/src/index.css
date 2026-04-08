@@ -23,7 +23,6 @@
 
 html {
   scroll-behavior: smooth;
-  scrollbar-gutter: stable;
 }
 
 body {
@@ -31,6 +30,7 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--ink-900);
+  padding-right: 0px !important;
 }
 
 body,
