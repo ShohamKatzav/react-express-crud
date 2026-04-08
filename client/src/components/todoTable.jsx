@@ -285,7 +285,6 @@ function TodoTable({
                 headerName: "Task",
                 minWidth: 240,
                 cellClassName: 'todo-table__cell--task',
-                sortingOrder: ['desc', 'asc', null],
                 renderCell: (params) => (
                     <Box sx={{ py: 1.6, width: '100%' }}>
                         <Typography
