@@ -28,6 +28,11 @@ import { formatDueDate, getDueDateState, getPriorityColor, getPriorityLabel } fr
 const PRIORITY_SORT_ORDER = { high: 1, medium: 2, low: 3 };
 const parseQuickFilter = (searchInput) =>
     searchInput.split(',').map((value) => value.trim()).filter(Boolean);
+const compareDueDates = (dateA, dateB) => {
+    const normalizedA = dateA || '9999-12-31';
+    const normalizedB = dateB || '9999-12-31';
+    return normalizedA.localeCompare(normalizedB);
+};
 
 function TodoToolbar({
     quickFilterValue,
@@ -280,6 +285,7 @@ function TodoTable({
                 headerName: "Task",
                 minWidth: 240,
                 cellClassName: 'todo-table__cell--task',
+                sortingOrder: ['desc', 'asc', null],
                 renderCell: (params) => (
                     <Box sx={{ py: 1.6, width: '100%' }}>
                         <Typography
@@ -353,7 +359,7 @@ function TodoTable({
                 flex: 0.55,
                 headerName: "Due date",
                 minWidth: 160,
-                sortable: false,
+                sortComparator: compareDueDates,
                 cellClassName: 'todo-table__cell--centered',
                 renderCell: (params) => {
                     const dueDate = params.value || '';
