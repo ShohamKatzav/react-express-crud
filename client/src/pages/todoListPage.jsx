@@ -18,6 +18,7 @@ import TodoTable from "../components/todoTable";
 import LoginPage from "./loginPage";
 import CleanTodosDialog from "../dialogs/cleanTodosDialog";
 import EditTodoDialog from "../dialogs/editTodoDialog";
+import ExportTodosDialog from "../dialogs/exportTodosDialog";
 import ImportTodosDialog from "../dialogs/importTodosDialog";
 import SelectedTodosDialog from "../dialogs/selectedTodosDialog";
 
@@ -418,6 +419,11 @@ function TodoListPage() {
                                 importTodos={importTodos}
                                 notifyError={notifyError}
                                 notifyWarning={notifyWarning}
+                            />
+                            <ExportTodosDialog
+                                notifyError={notifyError}
+                                notifySuccess={notifySuceess}
+                                todos={dataToShow}
                             />
                             <CleanTodosDialog
                                 cleanList={cleanList}
