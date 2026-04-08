@@ -44,7 +44,7 @@ function ExportTodosDialog({ notifyError, notifySuccess, todos }) {
             startIcon={<DownloadRoundedIcon />}
             variant="outlined"
         >
-            Export tasks
+            Export Excel
         </Button>
     );
 }

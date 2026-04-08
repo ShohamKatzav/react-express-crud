@@ -6,7 +6,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Divider from '@mui/material/Divider';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -114,10 +113,10 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
         <>
             <Button
                 onClick={() => setOpen(true)}
-                startIcon={<FileDownloadIcon />}
+                startIcon={<UploadFileRoundedIcon />}
                 variant="outlined"
             >
-                Import tasks
+                Import Excel
             </Button>
             <Dialog fullWidth maxWidth="sm" onClose={() => closeDialog()} open={open}>
                 <form onSubmit={handleSampleSubmit}>
