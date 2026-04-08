@@ -47,6 +47,41 @@ const CreateTodo = async (req, res) => {
     }
 };
 
+const ImportTodos = async (req, res) => {
+    try {
+        const items = Array.isArray(req.body.todos) ? req.body.todos : [];
+        const sanitizedTodos = items
+            .map((item) => ({
+                user_id: req.user.sub,
+                todo: String(item.value || "").trim(),
+                completed: Boolean(item.completed),
+            }))
+            .filter((item) => item.todo);
+
+        if (!sanitizedTodos.length) {
+            return res.status(400).send({ message: "No valid todos were provided." });
+        }
+
+        const count = await Todo.find({ user_id: req.user.sub }).count();
+        const availableSlots = Math.max(150 - count, 0);
+
+        if (availableSlots === 0) {
+            return res.status(409).send({ message: "Max list size is 150", inserted: [], skipped: sanitizedTodos.length });
+        }
+
+        const todosToInsert = sanitizedTodos.slice(0, availableSlots);
+        const insertedTodos = await Todo.insertMany(todosToInsert);
+
+        return res.status(200).send({
+            inserted: insertedTodos,
+            skipped: sanitizedTodos.length - todosToInsert.length,
+        });
+    } catch (err) {
+        console.error('Failed to import todos:', err);
+        res.sendStatus(500);
+    }
+};
+
 const DeleteTodo = async (req, res) => {
     try {
         await Todo.findByIdAndRemove(req.body.id);
@@ -121,6 +156,7 @@ module.exports = {
     CleanList,
     GetTodos,
     CreateTodo,
+    ImportTodos,
     DeleteTodo,
     EditText,
     EditStatus,

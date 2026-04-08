@@ -10,9 +10,6 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
-import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
-import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import ListAltRoundedIcon from '@mui/icons-material/ListAltRounded';
 import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
@@ -21,7 +18,8 @@ import TodoTable from "../components/todoTable";
 import LoginPage from "./loginPage";
 import CleanTodosDialog from "../dialogs/cleanTodosDialog";
 import EditTodoDialog from "../dialogs/editTodoDialog";
-import FetchTodoDialog from "../dialogs/fetchTodoDialog";
+import ImportTodosDialog from "../dialogs/importTodosDialog";
+import SelectedTodosDialog from "../dialogs/selectedTodosDialog";
 
 function TodoListPage() {
 
@@ -139,6 +137,39 @@ function TodoListPage() {
         }
     };
 
+    const importTodos = async (todos) => {
+        try {
+            const response = await axios.post(`${baseUrl}/todo/import`, { todos }, config);
+            const insertedTodos = response.data?.inserted || [];
+            const skippedTodos = response.data?.skipped || 0;
+
+            if (insertedTodos.length) {
+                setDataToShow((current) => [...current, ...insertedTodos]);
+                setTodoAdded(true);
+                setIsDataRendered(false);
+            }
+
+            if (insertedTodos.length && skippedTodos) {
+                notifyWarning(`${insertedTodos.length} todos imported. ${skippedTodos} skipped because the list limit is 150`);
+                return;
+            }
+
+            if (insertedTodos.length) {
+                notifySuceess(`${insertedTodos.length} todos imported successfully`);
+                return;
+            }
+
+            notifyWarning("No todos were imported");
+        } catch (e) {
+            if (e.response?.status === 409) {
+                notifyError("Max list size is 150");
+                return;
+            }
+            console.log(e.message);
+            notifyError("Could not import todos");
+        }
+    };
+
     const deleteTodo = async (todo_Id) => {
         try {
             await axios.delete(`${baseUrl}/todo`, { headers: { Authorization: config.headers.Authorization }, data: { id: todo_Id } });
@@ -211,6 +242,7 @@ function TodoListPage() {
                 headers: { Authorization: config.headers.Authorization }, data: { ids: selectedRows }
             });
             setDataToShow((current) => current.filter((todo) => !selectedRows.includes(todo._id)));
+            setSelectedRows([]);
             notifySuceess("Todos deleted successfully");
         } catch (e) {
             console.log(e.message);
@@ -381,8 +413,10 @@ function TodoListPage() {
                                 notifyError={notifyError}
                                 notifyWarning={notifyWarning}
                             />
-                            <FetchTodoDialog
+                            <ImportTodosDialog
                                 fetchTodos={fetchTodos}
+                                importTodos={importTodos}
+                                notifyError={notifyError}
                                 notifyWarning={notifyWarning}
                             />
                             <CleanTodosDialog
@@ -390,33 +424,12 @@ function TodoListPage() {
                                 dataToShow={dataToShow}
                                 notifyWarning={notifyWarning}
                             />
-                            <Button
-                                color="error"
-                                disabled={selectedRows.length < 1}
-                                onClick={() => deleteSelected()}
-                                startIcon={<DeleteSweepRoundedIcon />}
-                                variant="outlined"
-                            >
-                                Delete selected
-                            </Button>
-                            <Button
-                                color="success"
-                                disabled={selectedRows.length < 1}
-                                onClick={() => changeSelectedStatus(true)}
-                                startIcon={<CheckCircleRoundedIcon />}
-                                variant="outlined"
-                            >
-                                Mark selected done
-                            </Button>
-                            <Button
-                                color="warning"
-                                disabled={selectedRows.length < 1}
-                                onClick={() => changeSelectedStatus(false)}
-                                startIcon={<RadioButtonUncheckedRoundedIcon />}
-                                variant="outlined"
-                            >
-                                Mark selected active
-                            </Button>
+                            <SelectedTodosDialog
+                                changeSelectedStatus={changeSelectedStatus}
+                                deleteSelected={deleteSelected}
+                                notifyWarning={notifyWarning}
+                                selectedCount={selectedRows.length}
+                            />
                         </Stack>
                     </Stack>
 

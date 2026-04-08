@@ -4,9 +4,8 @@ import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
-import FormControlLabel from '@mui/material/FormControlLabel';
+import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
-import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 
@@ -55,6 +54,7 @@ function AddToDoDialog({ addTodo, notifyError, notifyWarning }) {
             <Stack spacing={2.2} sx={{ pt: 1 }}>
               <TextField
                 autoFocus
+                fullWidth
                 label="Task description"
                 multiline
                 minRows={2}
@@ -62,16 +62,16 @@ function AddToDoDialog({ addTodo, notifyError, notifyWarning }) {
                 placeholder="Write the next thing you want to get done..."
                 value={newTodoValue}
               />
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={isCompleted}
-                    color="success"
-                    onChange={(event) => setIsCompleted(event.target.checked)}
-                  />
-                }
-                label="Mark this task as completed right away"
-              />
+              <TextField
+                fullWidth
+                label="Status"
+                onChange={(event) => setIsCompleted(event.target.value === "done")}
+                select
+                value={isCompleted ? "done" : "in-focus"}
+              >
+                <MenuItem value="in-focus">In focus</MenuItem>
+                <MenuItem value="done">Done</MenuItem>
+              </TextField>
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2.5 }}>
