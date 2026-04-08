@@ -1,9 +1,17 @@
-import { DataGrid, GridToolbarQuickFilter } from "@mui/x-data-grid";
+import { useState } from 'react';
+import { DataGrid } from "@mui/x-data-grid";
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from "@mui/material/IconButton";
+import InputAdornment from '@mui/material/InputAdornment';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import OutlinedInput from '@mui/material/OutlinedInput';
+import Popover from '@mui/material/Popover';
 import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -11,12 +19,36 @@ import EditIcon from "@mui/icons-material/Edit";
 import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
+import EventRoundedIcon from '@mui/icons-material/EventRounded';
+import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import { formatDueDate, getDueDateState, getPriorityColor, getPriorityLabel } from '../utils/todoFields';
 
-function TodoToolbar({ statusCounts, statusFilter, setStatusFilter }) {
+const PRIORITY_SORT_ORDER = { high: 1, medium: 2, low: 3 };
+const parseQuickFilter = (searchInput) =>
+    searchInput.split(',').map((value) => value.trim()).filter(Boolean);
+
+function TodoToolbar({
+    quickFilterValue,
+    setQuickFilterValue,
+    priorityCounts,
+    priorityFilter,
+    setPriorityFilter,
+    statusCounts,
+    statusFilter,
+    setStatusFilter,
+}) {
     const filterOptions = [
         { key: 'all', label: 'All', count: statusCounts.all },
         { key: 'active', label: 'In focus', count: statusCounts.active },
         { key: 'done', label: 'Done', count: statusCounts.done },
+    ];
+    const priorityOptions = [
+        { key: 'all', label: 'All priorities', count: priorityCounts.all },
+        { key: 'high', label: 'High', count: priorityCounts.high },
+        { key: 'medium', label: 'Medium', count: priorityCounts.medium },
+        { key: 'low', label: 'Low', count: priorityCounts.low },
     ];
 
     return (
@@ -47,25 +79,77 @@ function TodoToolbar({ statusCounts, statusFilter, setStatusFilter }) {
                         />
                     ))}
                 </Stack>
+                <Stack direction="row" flexWrap="wrap" gap={0.8} sx={{ mt: 1 }}>
+                    {priorityOptions.map((option) => (
+                        <Chip
+                            clickable
+                            color={priorityFilter === option.key ? 'primary' : 'default'}
+                            icon={<FlagRoundedIcon />}
+                            key={option.key}
+                            label={`${option.label} (${option.count})`}
+                            onClick={() => setPriorityFilter(option.key)}
+                            size="small"
+                            variant={priorityFilter === option.key ? 'filled' : 'outlined'}
+                        />
+                    ))}
+                </Stack>
             </Box>
             <Box
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 1,
-                    px: 1.4,
-                    py: 0.8,
+                    width: '100%',
+                    maxWidth: { md: 260 },
                     borderRadius: 999,
-                    border: '1px solid rgba(31, 64, 87, 0.12)',
-                    background: 'rgba(255, 250, 244, 0.7)',
-                    minWidth: { xs: '100%', md: 260 },
                 }}
             >
-                <GridToolbarQuickFilter
-                    debounceMs={250}
-                    quickFilterParser={(searchInput) =>
-                        searchInput.split(',').map((value) => value.trim()).filter(Boolean)
+                <OutlinedInput
+                    fullWidth
+                    onChange={(event) => setQuickFilterValue(event.target.value)}
+                    placeholder="Search..."
+                    startAdornment={
+                        <InputAdornment position="start">
+                            <SearchRoundedIcon sx={{ fontSize: '1rem' }} />
+                        </InputAdornment>
                     }
+                    endAdornment={quickFilterValue ? (
+                        <InputAdornment position="end">
+                            <IconButton
+                                aria-label="Clear search"
+                                edge="end"
+                                onClick={() => setQuickFilterValue('')}
+                                size="small"
+                            >
+                                <CloseRoundedIcon sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                        </InputAdornment>
+                    ) : null}
+                    size="small"
+                    sx={{
+                        height: 34,
+                        background: 'rgba(255, 250, 244, 0.7)',
+                        borderRadius: 999,
+                        fontSize: '0.9rem',
+                        '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'rgba(31, 64, 87, 0.12)',
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'rgba(31, 64, 87, 0.2)',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: 'rgba(31, 64, 87, 0.28)',
+                        },
+                        '& .MuiOutlinedInput-input': {
+                            padding: '7px 0',
+                        },
+                        '& .MuiInputAdornment-root': {
+                            color: 'text.secondary',
+                        },
+                        '& .MuiIconButton-root': {
+                            padding: '3px',
+                        }
+                    }}
+                    value={quickFilterValue}
                 />
             </Box>
         </Stack>
@@ -97,16 +181,82 @@ function LoadingState() {
 function TodoTable({
     dataToShow,
     deleteTodo,
+    editDueDate,
+    editPriority,
     editText,
     editStatus,
     isLoading,
+    priorityCounts,
+    priorityFilter,
     setCurrentPaginationModel,
+    setPriorityFilter,
     apiRef,
     setSelectedRows,
     statusCounts,
     statusFilter,
     setStatusFilter,
 }) {
+    const [priorityMenuAnchor, setPriorityMenuAnchor] = useState(null);
+    const [priorityMenuTodo, setPriorityMenuTodo] = useState(null);
+    const [dueDatePopoverAnchor, setDueDatePopoverAnchor] = useState(null);
+    const [dueDatePopoverTodo, setDueDatePopoverTodo] = useState(null);
+    const [dueDateDraft, setDueDateDraft] = useState('');
+    const [quickFilterValue, setQuickFilterValue] = useState('');
+
+    const openPriorityMenu = (event, row) => {
+        event.stopPropagation();
+        setPriorityMenuAnchor(event.currentTarget);
+        setPriorityMenuTodo(row);
+    };
+
+    const closePriorityMenu = () => {
+        setPriorityMenuAnchor(null);
+        setPriorityMenuTodo(null);
+    };
+
+    const handlePrioritySelect = async (priority) => {
+        if (!priorityMenuTodo) {
+            return;
+        }
+
+        const todoId = priorityMenuTodo._id;
+        closePriorityMenu();
+        await editPriority(todoId, priority);
+    };
+
+    const openDueDateEditor = (event, row) => {
+        event.stopPropagation();
+        setDueDatePopoverAnchor(event.currentTarget);
+        setDueDatePopoverTodo(row);
+        setDueDateDraft(row.dueDate || '');
+    };
+
+    const closeDueDateEditor = () => {
+        setDueDatePopoverAnchor(null);
+        setDueDatePopoverTodo(null);
+        setDueDateDraft('');
+    };
+
+    const handleDueDateSave = async () => {
+        if (!dueDatePopoverTodo) {
+            return;
+        }
+
+        const todoId = dueDatePopoverTodo._id;
+        const nextDueDate = dueDateDraft;
+        closeDueDateEditor();
+        await editDueDate(todoId, nextDueDate);
+    };
+
+    const handleDueDateClear = async () => {
+        if (!dueDatePopoverTodo) {
+            return;
+        }
+
+        const todoId = dueDatePopoverTodo._id;
+        closeDueDateEditor();
+        await editDueDate(todoId, '');
+    };
 
     const columns =
         [
@@ -172,6 +322,75 @@ function TodoTable({
                 type: 'boolean'
             },
             {
+                field: "priority",
+                flex: 0.45,
+                headerName: "Priority",
+                minWidth: 140,
+                sortComparator: (priorityA, priorityB) =>
+                    (PRIORITY_SORT_ORDER[priorityA || 'medium'] || PRIORITY_SORT_ORDER.medium)
+                    - (PRIORITY_SORT_ORDER[priorityB || 'medium'] || PRIORITY_SORT_ORDER.medium),
+                cellClassName: 'todo-table__cell--centered',
+                renderCell: (params) => {
+                    const onClick = (event) => {
+                        openPriorityMenu(event, params.row);
+                    };
+
+                    return (
+                        <Chip
+                            clickable
+                            color={getPriorityColor(params.value || 'medium')}
+                            icon={<FlagRoundedIcon />}
+                            label={getPriorityLabel(params.value || 'medium')}
+                            onClick={onClick}
+                            size="small"
+                            variant="outlined"
+                        />
+                    );
+                },
+            },
+            {
+                field: "dueDate",
+                flex: 0.55,
+                headerName: "Due date",
+                minWidth: 160,
+                sortable: false,
+                cellClassName: 'todo-table__cell--centered',
+                renderCell: (params) => {
+                    const dueDate = params.value || '';
+                    const dueDateState = getDueDateState(dueDate);
+                    const isComplete = Boolean(params.row.completed);
+
+                    let color = 'default';
+                    let variant = 'outlined';
+
+                    if (dueDateState === 'today') {
+                        color = 'secondary';
+                        variant = 'filled';
+                    } else if (dueDateState === 'overdue' && !isComplete) {
+                        color = 'error';
+                        variant = 'filled';
+                    } else if (dueDateState === 'upcoming') {
+                        color = 'info';
+                    }
+
+                    const onClick = (event) => {
+                        openDueDateEditor(event, params.row);
+                    };
+
+                    return (
+                        <Chip
+                            clickable
+                            color={color}
+                            icon={<EventRoundedIcon />}
+                            label={formatDueDate(dueDate)}
+                            onClick={onClick}
+                            size="small"
+                            variant={variant}
+                        />
+                    );
+                },
+            },
+            {
                 field: "actions",
                 flex: 0.45,
                 headerName: "Actions",
@@ -217,6 +436,10 @@ function TodoTable({
                     density="comfortable"
                     disableColumnMenu
                     disableRowSelectionOnClick
+                    filterModel={{
+                        items: [],
+                        quickFilterValues: parseQuickFilter(quickFilterValue),
+                    }}
                     getRowClassName={(params) => (params.row.completed ? 'todo-row--complete' : '')}
                     getRowHeight={() => 'auto'}
                     getRowId={(row) => row._id}
@@ -239,6 +462,11 @@ function TodoTable({
                     }}
                     slotProps={{
                         toolbar: {
+                            quickFilterValue,
+                            setQuickFilterValue,
+                            priorityCounts,
+                            priorityFilter,
+                            setPriorityFilter,
                             statusCounts,
                             statusFilter,
                             setStatusFilter,
@@ -251,6 +479,7 @@ function TodoTable({
                         '& .MuiDataGrid-toolbarContainer': {
                             px: 0,
                             pt: 0,
+                            gap: 1.5,
                         },
                         '& .MuiDataGrid-columnHeaders': {
                             borderBottom: '1px solid rgba(31, 64, 87, 0.1)',
@@ -289,14 +518,59 @@ function TodoTable({
                         '& .MuiDataGrid-cell:focus, & .MuiDataGrid-columnHeader:focus, & .MuiDataGrid-cell:focus-within, & .MuiDataGrid-columnHeader:focus-within': {
                             outline: 'none',
                         },
-                        '& .MuiDataGrid-toolbarContainer .MuiInputBase-root': {
-                            width: '100%',
-                        },
-                        '& .MuiDataGrid-toolbarContainer .MuiInputBase-input': {
-                            py: 0.4,
-                        },
                     }}
                 />
+                <Menu
+                    anchorEl={priorityMenuAnchor}
+                    onClose={closePriorityMenu}
+                    open={Boolean(priorityMenuAnchor)}
+                >
+                    {['high', 'medium', 'low'].map((priority) => (
+                        <MenuItem
+                            key={priority}
+                            onClick={() => handlePrioritySelect(priority)}
+                            selected={(priorityMenuTodo?.priority || 'medium') === priority}
+                        >
+                            {getPriorityLabel(priority)}
+                        </MenuItem>
+                    ))}
+                </Menu>
+                <Popover
+                    anchorEl={dueDatePopoverAnchor}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+                    onClose={closeDueDateEditor}
+                    open={Boolean(dueDatePopoverAnchor)}
+                    transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                >
+                    <Box sx={{ p: 2, width: 280, maxWidth: 'calc(100vw - 32px)' }}>
+                        <Stack spacing={1.4}>
+                            <Typography sx={{ fontWeight: 700 }}>
+                                Edit due date
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                label="Due date"
+                                onChange={(event) => setDueDateDraft(event.target.value)}
+                                type="date"
+                                value={dueDateDraft}
+                                InputLabelProps={{ shrink: true }}
+                            />
+                            <Stack direction="row" justifyContent="space-between" spacing={1}>
+                                <Button onClick={handleDueDateClear} variant="text">
+                                    Clear
+                                </Button>
+                                <Stack direction="row" spacing={1}>
+                                    <Button onClick={closeDueDateEditor} variant="text">
+                                        Cancel
+                                    </Button>
+                                    <Button color="secondary" onClick={handleDueDateSave} variant="contained">
+                                        Save
+                                    </Button>
+                                </Stack>
+                            </Stack>
+                        </Stack>
+                    </Box>
+                </Popover>
             </Box>
         )
     );

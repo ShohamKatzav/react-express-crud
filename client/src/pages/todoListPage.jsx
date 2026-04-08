@@ -21,6 +21,7 @@ import EditTodoDialog from "../dialogs/editTodoDialog";
 import ExportTodosDialog from "../dialogs/exportTodosDialog";
 import ImportTodosDialog from "../dialogs/importTodosDialog";
 import SelectedTodosDialog from "../dialogs/selectedTodosDialog";
+import { getDueDateState } from "../utils/todoFields";
 
 function TodoListPage() {
 
@@ -36,6 +37,7 @@ function TodoListPage() {
     const [selectedRows, setSelectedRows] = useState([]);
     const [isTodosLoading, setIsTodosLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState('all');
+    const [priorityFilter, setPriorityFilter] = useState('all');
 
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
 
@@ -86,7 +88,7 @@ function TodoListPage() {
 
     useEffect(() => {
         updateGridPage(0);
-    }, [statusFilter]);
+    }, [priorityFilter, statusFilter]);
 
     const fetchTodos = async (amount) => {
         try {
@@ -121,14 +123,15 @@ function TodoListPage() {
         }
     };
 
-    const addTodo = async (todo, completed) => {
+    const addTodo = async ({ completed, dueDate, priority, value }) => {
         try {
-            const response = await axios.post(`${baseUrl}/todo`, { value: todo, completed: completed }, config);
+            const response = await axios.post(`${baseUrl}/todo`, { value, completed, priority, dueDate }, config);
             if (response.status === 200) {
                 setTodoAdded(true);
                 setIsDataRendered(false);
                 setDataToShow((current) => [...current, response.data]);
                 notifySuceess("Todo added successfully");
+                return true;
             }
             else {
                 notifyError("Max list size is 150");
@@ -136,6 +139,7 @@ function TodoListPage() {
         } catch (e) {
             console.log(e.message);
         }
+        return false;
     };
 
     const importTodos = async (todos) => {
@@ -152,23 +156,24 @@ function TodoListPage() {
 
             if (insertedTodos.length && skippedTodos) {
                 notifyWarning(`${insertedTodos.length} todos imported. ${skippedTodos} skipped because the list limit is 150`);
-                return;
+                return true;
             }
 
             if (insertedTodos.length) {
                 notifySuceess(`${insertedTodos.length} todos imported successfully`);
-                return;
+                return true;
             }
 
             notifyWarning("No todos were imported");
         } catch (e) {
             if (e.response?.status === 409) {
                 notifyError("Max list size is 150");
-                return;
+                return false;
             }
             console.log(e.message);
             notifyError("Could not import todos");
         }
+        return false;
     };
 
     const deleteTodo = async (todo_Id) => {
@@ -207,34 +212,88 @@ function TodoListPage() {
     const handleEditDialogSubmit = async (e) => {
         e.preventDefault();
         const index = dataToShow.findIndex((todo) => todo._id === params.id);
-        await sendPutRequestAndUpdateState(params, index, "/todo/editText");
-        notifySuceess("Todo edited successfully");
-        setIsEditDialogOpen(false);
+        const wasUpdated = await sendPutRequestAndUpdateState(params, index, "/todo/editText");
+        if (wasUpdated) {
+            notifySuceess("Todo updated successfully");
+            setIsEditDialogOpen(false);
+        } else {
+            notifyError("Could not update todo");
+        }
     };
 
     const editText = (todo_Id) => {
         const todoToEdit = dataToShow.find((todo) => todo._id === todo_Id);
-        setParams({ id: todo_Id, todo: todoToEdit.todo });
+        setParams({
+            id: todo_Id,
+            todo: todoToEdit.todo,
+            completed: todoToEdit.completed,
+            priority: todoToEdit.priority || 'medium',
+            dueDate: todoToEdit.dueDate || '',
+        });
         openEditTodoDialog();
     };
     const editStatus = (todo_Id) => {
         const index = dataToShow.findIndex((todo) => todo._id === todo_Id);
         const nextParams = { id: todo_Id, completed: !dataToShow.find((todo) => todo._id === todo_Id).completed };
-        sendPutRequestAndUpdateState(nextParams, index, "/todo/editStatus");
-        notifySuceess("Todo status changed");
+        sendPutRequestAndUpdateState(nextParams, index, "/todo/editStatus").then((wasUpdated) => {
+            if (wasUpdated) {
+                notifySuceess("Todo status changed");
+            } else {
+                notifyError("Could not change todo status");
+            }
+        });
+    };
+    const editPriority = (todo_Id, nextPriority) => {
+        const index = dataToShow.findIndex((todo) => todo._id === todo_Id);
+        const currentPriority = dataToShow.find((todo) => todo._id === todo_Id)?.priority || 'medium';
+
+        if (currentPriority === nextPriority) {
+            return Promise.resolve(true);
+        }
+
+        return sendPutRequestAndUpdateState({ id: todo_Id, priority: nextPriority }, index, "/todo/editPriority").then((wasUpdated) => {
+            if (wasUpdated) {
+                notifySuceess(`Priority changed to ${nextPriority}`);
+            } else {
+                notifyError("Could not change todo priority");
+            }
+            return wasUpdated;
+        });
+    };
+    const editDueDate = (todo_Id, nextDueDate) => {
+        const index = dataToShow.findIndex((todo) => todo._id === todo_Id);
+        const currentDueDate = dataToShow.find((todo) => todo._id === todo_Id)?.dueDate || '';
+
+        if (currentDueDate === nextDueDate) {
+            return Promise.resolve(true);
+        }
+
+        return sendPutRequestAndUpdateState({ id: todo_Id, dueDate: nextDueDate }, index, "/todo/editDueDate").then((wasUpdated) => {
+            if (wasUpdated) {
+                notifySuceess(nextDueDate ? "Due date updated" : "Due date cleared");
+            } else {
+                notifyError("Could not change due date");
+            }
+            return wasUpdated;
+        });
     };
 
     const sendPutRequestAndUpdateState = async (requestParams, index, endPoint) => {
         try {
             const response = await axios.put(baseUrl + endPoint, requestParams, config);
+            if (!response.data) {
+                return false;
+            }
             setDataToShow((current) => {
                 const newData = [...current];
                 newData[index] = response.data;
                 return newData;
             });
+            return true;
         } catch (e) {
             console.log(e.message);
         }
+        return false;
     };
 
     const deleteSelected = async () => {
@@ -294,20 +353,34 @@ function TodoListPage() {
     const totalTodos = dataToShow.length;
     const completedTodos = dataToShow.filter((todo) => todo.completed).length;
     const remainingTodos = totalTodos - completedTodos;
+    const overdueTodos = dataToShow.filter((todo) => !todo.completed && getDueDateState(todo.dueDate || '') === 'overdue').length;
     const completionRate = totalTodos ? `${Math.round((completedTodos / totalTodos) * 100)}%` : '0%';
     const filteredTodos = dataToShow.filter((todo) => {
         if (statusFilter === 'done') {
-            return todo.completed;
+            if (!todo.completed) {
+                return false;
+            }
         }
-        if (statusFilter === 'active') {
-            return !todo.completed;
+        if (statusFilter === 'active' && todo.completed) {
+            return false;
         }
+
+        if (priorityFilter !== 'all' && (todo.priority || 'medium') !== priorityFilter) {
+            return false;
+        }
+
         return true;
     });
     const statusCounts = {
         all: totalTodos,
         active: remainingTodos,
         done: completedTodos,
+    };
+    const priorityCounts = {
+        all: totalTodos,
+        high: dataToShow.filter((todo) => (todo.priority || 'medium') === 'high').length,
+        medium: dataToShow.filter((todo) => (todo.priority || 'medium') === 'medium').length,
+        low: dataToShow.filter((todo) => (todo.priority || 'medium') === 'low').length,
     };
 
     const stats = [
@@ -328,7 +401,7 @@ function TodoListPage() {
         {
             label: 'Completion rate',
             value: completionRate,
-            helper: `${remainingTodos} still in focus`,
+            helper: overdueTodos ? `${remainingTodos} still in focus, ${overdueTodos} overdue` : `${remainingTodos} still in focus`,
             accent: 'rgba(216, 164, 61, 0.15)',
             icon: <AutoAwesomeRoundedIcon sx={{ color: '#d8a43d' }} />,
         },
@@ -443,10 +516,15 @@ function TodoListPage() {
                         apiRef={apiRef}
                         dataToShow={filteredTodos}
                         deleteTodo={deleteTodo}
+                        editDueDate={editDueDate}
+                        editPriority={editPriority}
                         editStatus={editStatus}
                         editText={editText}
                         isLoading={isTodosLoading}
+                        priorityCounts={priorityCounts}
+                        priorityFilter={priorityFilter}
                         setCurrentPaginationModel={setCurrentPaginationModel}
+                        setPriorityFilter={setPriorityFilter}
                         setSelectedRows={setSelectedRows}
                         statusCounts={statusCounts}
                         statusFilter={statusFilter}

@@ -2,6 +2,20 @@ require('dotenv').config({ path: "../.env" })
 const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
 const dbName = "TodoDB";
+const PRIORITIES = ['low', 'medium', 'high'];
+
+const randomPriority = () => PRIORITIES[Math.floor(Math.random() * PRIORITIES.length)];
+
+const randomDueDate = () => {
+  if (Math.random() < 0.35) {
+    return '';
+  }
+
+  const date = new Date();
+  const offsetDays = Math.floor(Math.random() * 12) - 2;
+  date.setDate(date.getDate() + offsetDays);
+  return date.toISOString().slice(0, 10);
+};
 
 async function connectDB() {
   try {
@@ -28,7 +42,13 @@ async function fetchTodos(sub, amount) {
       const res = await fetch(`https://dummyjson.com/todos?limit=${amount}&skip=${skip}`);
       const documentsFromDummyjson = await res.json();
       const todosArray = documentsFromDummyjson.todos.map
-        ((x) => ({ user_id: sub, todo: x.todo, completed: x.completed }));
+        ((x) => ({
+          user_id: sub,
+          todo: x.todo,
+          completed: x.completed,
+          priority: randomPriority(),
+          dueDate: randomDueDate(),
+        }));
 
       const result = await Todo.insertMany(todosArray);
       return result;

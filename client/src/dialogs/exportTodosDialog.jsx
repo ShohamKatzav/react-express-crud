@@ -5,6 +5,8 @@ const buildExportRows = (todos) =>
     todos.map((todo) => ({
         task: todo.todo,
         status: todo.completed ? 'done' : 'in focus',
+        priority: todo.priority || 'medium',
+        dueDate: todo.dueDate || '',
     }));
 
 const buildFileName = () => {

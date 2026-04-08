@@ -1,5 +1,73 @@
 const { fetchTodos } = require("../config/mongodb");
 const Todo = require("../models/Todo");
+const PRIORITIES = ['low', 'medium', 'high'];
+
+const normalizePriority = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+
+    if (normalized === 'urgent') {
+        return 'high';
+    }
+
+    if (normalized === 'normal' || normalized === '') {
+        return 'medium';
+    }
+
+    if (PRIORITIES.includes(normalized)) {
+        return normalized;
+    }
+
+    return 'medium';
+};
+
+const normalizeDueDate = (value) => {
+    if (!value) {
+        return '';
+    }
+
+    const normalized = String(value).trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+        return '';
+    }
+
+    const parsedDate = new Date(`${normalized}T00:00:00Z`);
+    if (Number.isNaN(parsedDate.getTime())) {
+        return '';
+    }
+
+    const isoDate = parsedDate.toISOString().slice(0, 10);
+    if (isoDate !== normalized) {
+        return '';
+    }
+
+    return normalized;
+};
+
+const buildTodoPayload = (body = {}) => ({
+    todo: String(body.value ?? body.todo ?? '').trim(),
+    completed: Boolean(body.completed),
+    priority: normalizePriority(body.priority),
+    dueDate: normalizeDueDate(body.dueDate),
+});
+
+const buildTodoUpdatePayload = (body = {}) => {
+    const updatePayload = {};
+
+    if ('value' in body || 'todo' in body) {
+        updatePayload.todo = String(body.value ?? body.todo ?? '').trim();
+    }
+    if ('completed' in body) {
+        updatePayload.completed = Boolean(body.completed);
+    }
+    if ('priority' in body) {
+        updatePayload.priority = normalizePriority(body.priority);
+    }
+    if ('dueDate' in body) {
+        updatePayload.dueDate = normalizeDueDate(body.dueDate);
+    }
+
+    return updatePayload;
+};
 
 const FetchTodos = async (req, res) => {
     try {
@@ -36,7 +104,8 @@ const CreateTodo = async (req, res) => {
     try {
         const count = await Todo.find({ user_id: req.user.sub }).count();
         if (count < 150) {
-            const newDoc = await Todo.create({ user_id: req.user.sub, todo: req.body.value, completed: req.body.completed });
+            const payload = buildTodoPayload(req.body);
+            const newDoc = await Todo.create({ user_id: req.user.sub, ...payload });
             res.send(newDoc);
         }
         else
@@ -53,8 +122,7 @@ const ImportTodos = async (req, res) => {
         const sanitizedTodos = items
             .map((item) => ({
                 user_id: req.user.sub,
-                todo: String(item.value || "").trim(),
-                completed: Boolean(item.completed),
+                ...buildTodoPayload(item),
             }))
             .filter((item) => item.todo);
 
@@ -84,7 +152,7 @@ const ImportTodos = async (req, res) => {
 
 const DeleteTodo = async (req, res) => {
     try {
-        await Todo.findByIdAndRemove(req.body.id);
+        await Todo.findOneAndDelete({ _id: req.body.id, user_id: req.user.sub });
         res.sendStatus(204);
     }
     catch (err) {
@@ -95,7 +163,12 @@ const DeleteTodo = async (req, res) => {
 
 const EditText = async (req, res) => {
     try {
-        const updatedDoc = await Todo.findByIdAndUpdate(req.body.id, { todo: req.body.todo }, { returnDocument: "after" });
+        const payload = buildTodoUpdatePayload(req.body);
+        const updatedDoc = await Todo.findOneAndUpdate(
+            { _id: req.body.id, user_id: req.user.sub },
+            payload,
+            { returnDocument: "after" }
+        );
         res.send(updatedDoc);
     }
     catch (err) {
@@ -106,7 +179,11 @@ const EditText = async (req, res) => {
 
 const EditStatus = async (req, res) => {
     try {
-        const updatedDoc = await Todo.findByIdAndUpdate(req.body.id, { completed: req.body.completed }, { returnDocument: "after" });
+        const updatedDoc = await Todo.findOneAndUpdate(
+            { _id: req.body.id, user_id: req.user.sub },
+            { completed: req.body.completed },
+            { returnDocument: "after" }
+        );
         res.send(updatedDoc);
     }
     catch (err) {
@@ -115,9 +192,40 @@ const EditStatus = async (req, res) => {
     }
 };
 
+const EditPriority = async (req, res) => {
+    try {
+        const updatedDoc = await Todo.findOneAndUpdate(
+            { _id: req.body.id, user_id: req.user.sub },
+            { priority: normalizePriority(req.body.priority) },
+            { returnDocument: "after" }
+        );
+        res.send(updatedDoc);
+    }
+    catch (err) {
+        console.error('Failed to update priority for document:', err);
+        res.sendStatus(500);
+    }
+};
+
+const EditDueDate = async (req, res) => {
+    try {
+        const updatedDoc = await Todo.findOneAndUpdate(
+            { _id: req.body.id, user_id: req.user.sub },
+            { dueDate: normalizeDueDate(req.body.dueDate) },
+            { returnDocument: "after" }
+        );
+        res.send(updatedDoc);
+    }
+    catch (err) {
+        console.error('Failed to update due date for document:', err);
+        res.sendStatus(500);
+    }
+};
+
 const DeleteSelected = async (req, res) => {
     try {
         await Todo.deleteMany({
+            user_id: req.user.sub,
             _id: {
                 $in: req.body.ids
             }
@@ -133,12 +241,14 @@ const DeleteSelected = async (req, res) => {
 const ChangeSelectedStatus = async (req, res) => {
     try {
         await Todo.updateMany({
+            user_id: req.user.sub,
             _id: {
                 $in: req.body.ids
             }
         },
         { completed: req.body.completed });
         const updatedDoc = await Todo.find({
+            user_id: req.user.sub,
             _id: {
                 $in: req.body.ids
             }
@@ -160,6 +270,8 @@ module.exports = {
     DeleteTodo,
     EditText,
     EditStatus,
+    EditPriority,
+    EditDueDate,
     DeleteSelected,
     ChangeSelectedStatus
 };

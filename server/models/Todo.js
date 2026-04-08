@@ -13,6 +13,15 @@ const todoSchema = new Schema({
     completed: {
         type: Boolean,
         required: true
+    },
+    priority: {
+        type: String,
+        enum: ['low', 'medium', 'high'],
+        default: 'medium'
+    },
+    dueDate: {
+        type: String,
+        default: ''
     }
 }, {
     capped: { size: 1024 },
