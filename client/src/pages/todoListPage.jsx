@@ -225,18 +225,18 @@ function TodoListPage() {
     const addTodo = async ({ completed, dueDate, priority, project, value }) => {
         try {
             const response = await api.post(`/todo`, { value, completed, priority, dueDate, project }, config);
-            if (response.status === 200) {
-                setTodoAdded(true);
-                setIsDataRendered(false);
-                setDataToShow((current) => [...current, normalizeTodoRecord(response.data)]);
-                notifySuceess("Todo added successfully");
-                await refreshProjects(config);
-                return true;
-            }
-            else {
-                notifyError("Max list size is 150");
-            }
+            setTodoAdded(true);
+            setIsDataRendered(false);
+            setDataToShow((current) => [...current, normalizeTodoRecord(response.data)]);
+            notifySuceess("Todo added successfully");
+            await refreshProjects(config);
+            return true;
         } catch (e) {
+            if (e.response?.status === 409) {
+                notifyError("Max list size is 150");
+                return;
+            }
+
             console.log(e.message);
         }
         return false;

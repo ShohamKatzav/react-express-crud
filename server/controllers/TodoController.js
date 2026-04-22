@@ -109,15 +109,14 @@ const GetTodos = async (req, res) => {
 
 const CreateTodo = async (req, res) => {
     try {
-        const count = await Todo.find({ user_id: req.user.sub }).count();
-        if (count < 150) {
-            const payload = buildTodoPayload(req.body);
-            await ensureProjectExists(req.user.sub, payload.project);
-            const newDoc = await Todo.create({ user_id: req.user.sub, ...payload });
-            return res.status(201).send(newDoc);
+        const count = await Todo.countDocuments({ user_id: req.user.sub });
+        if (count >= 150) {
+            return res.status(409).send({ message: 'Max list size is 150' });
         }
-
-        return res.status(409).send({ message: 'Max list size is 150' });
+        const payload = buildTodoPayload(req.body);
+        await ensureProjectExists(req.user.sub, payload.project);
+        const newDoc = await Todo.create({ user_id: req.user.sub, ...payload });
+        return res.status(201).send(newDoc);
     } catch (err) {
         console.error('Failed to insert document:', err);
         res.status(500).send({ message: 'Unable to create todo' });
