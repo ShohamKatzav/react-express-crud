@@ -728,7 +728,7 @@ function TodoListPage() {
                                 icon={<FolderRoundedIcon />}
                                 label={`${projectOptions.length} project${projectOptions.length === 1 ? '' : 's'}`}
                                 size="small"
-                                sx={{ height: 32 }}
+                                sx={{ height: 32, '& .MuiChip-label': { px: 1.2 } }}
                                 variant="outlined"
                             />
                             <Button
@@ -862,7 +862,7 @@ function TodoListPage() {
                                     setViewMode('list');
                                 }}
                                 size="small"
-                                sx={{ minHeight: 34, px: 1.6, whiteSpace: 'nowrap', alignSelf: { md: 'flex-start' } }}
+                                sx={{ minHeight: 34, px: 2, whiteSpace: 'nowrap', alignSelf: { md: 'flex-start' } }}
                                 variant={statusFilter === 'overdue' ? 'contained' : 'outlined'}
                             >
                                 Show overdue

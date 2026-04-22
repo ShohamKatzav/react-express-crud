@@ -90,8 +90,13 @@ function ContactPage() {
                             }}
                             variant="outlined"
                         >
-                            <Stack spacing={1}>
-                                <Stack alignItems="center" direction="row" spacing={1}>
+                            <Stack spacing={1}
+                                sx={{
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                }}>
+                                <Stack direction="row" spacing={1} display="flex" flex-direction="column" height="100%">
                                     <Box
                                         sx={{
                                             width: 42,
@@ -117,6 +122,7 @@ function ContactPage() {
                                     href="mailto:shohamkatzav95@gmail.com"
                                     startIcon={<EmailRoundedIcon />}
                                     variant="contained"
+                                    sx={{ mt: 'auto' }}
                                 >
                                     Email Shoham
                                 </Button>
@@ -139,7 +145,7 @@ function ContactPage() {
                             className={`surface-panel fade-in-up stagger-${(index % 4) + 1}`}
                             sx={{ p: 2.2, borderRadius: '28px', height: '100%' }}
                         >
-                            <Stack spacing={1.8} sx={{ height: '100%' }}>
+                            <Stack spacing={1.8} sx={{ height: '100%' }} justifyContent="space-between">
                                 <Stack alignItems="center" direction="row" spacing={1.2}>
                                     <Box
                                         sx={{

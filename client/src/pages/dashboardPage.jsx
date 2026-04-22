@@ -225,17 +225,25 @@ function DashboardPage() {
                                 }}
                                 variant="outlined"
                             >
-                                <Stack spacing={0.8}>
-                                    <Stack alignItems="center" direction="row" spacing={1}>
-                                        <WarningAmberRoundedIcon color="error" />
-                                        <Typography sx={{ fontWeight: 700 }}>Urgent slice</Typography>
+                                <Stack spacing={0.8}
+                                    sx={{
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between',
+                                    }}>
+                                    <Stack>
+                                        <Stack direction="row" spacing={1} display="flex" flex-direction="column" height="100%">
+                                            <WarningAmberRoundedIcon color="error" />
+                                            <Typography sx={{ fontWeight: 700 }}>Urgent slice</Typography>
+                                        </Stack>
+                                        <Typography sx={{ color: 'text.secondary' }}>
+                                            {overdueTodos
+                                                ? `${overdueTodos} task${overdueTodos === 1 ? '' : 's'} are overdue and ${todayTodos} land today.`
+                                                : `Nothing is overdue. ${todayTodos} task${todayTodos === 1 ? '' : 's'} land today.`}
+                                        </Typography>
                                     </Stack>
-                                    <Typography sx={{ color: 'text.secondary' }}>
-                                        {overdueTodos
-                                            ? `${overdueTodos} task${overdueTodos === 1 ? '' : 's'} are overdue and ${todayTodos} land today.`
-                                            : `Nothing is overdue. ${todayTodos} task${todayTodos === 1 ? '' : 's'} land today.`}
-                                    </Typography>
-                                    <Button component={Link} size="small" to="/workspace?status=overdue" variant="outlined">
+                                    <Button component={Link} size="small" to="/workspace?status=overdue" variant="outlined" sx={{ mt: 'auto' }}>
                                         Review in workspace
                                     </Button>
                                 </Stack>
