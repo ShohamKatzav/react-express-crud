@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from "../api";
 import { useGridApiRef } from "@mui/x-data-grid";
 import { toast } from 'react-toastify';
@@ -74,6 +74,7 @@ function TodoListPage() {
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
 
     const location = useLocation();
+    const navigate = useNavigate();
 
     const notifySuceess = (text) => {
         toast.dismiss();
@@ -162,6 +163,13 @@ function TodoListPage() {
             setProjectFilter(project);
         }
     }, [location.search]);
+
+    // If auth finished loading and user is not authenticated, send them home
+    useEffect(() => {
+        if (!isLoading && !isAuthenticated) {
+            navigate('/');
+        }
+    }, [isLoading, isAuthenticated, navigate]);
 
     useEffect(() => {
         updateGridPage(0);

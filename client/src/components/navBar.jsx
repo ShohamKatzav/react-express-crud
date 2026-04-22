@@ -22,7 +22,8 @@ function Navbar() {
     const [mobileOpen, setMobileOpen] = useState(false);
     const navItems = [
         { label: 'Dashboard', path: '/' },
-        { label: 'Workspace', path: '/workspace' },
+        // only show workspace link when authenticated
+        ...(isAuthenticated ? [{ label: 'Workspace', path: '/workspace' }] : []),
         { label: 'Contact', path: '/contact' },
         { label: 'About', path: '/about' },
     ];
