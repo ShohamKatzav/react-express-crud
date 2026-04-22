@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from 'react-router-dom';
 import api from "../api";
 import { useGridApiRef } from "@mui/x-data-grid";
 import { toast } from 'react-toastify';
@@ -6,6 +7,10 @@ import { useAuth0 } from "@auth0/auth0-react";
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -67,6 +72,8 @@ function TodoListPage() {
     const [viewMode, setViewMode] = useState('list');
 
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
+
+    const location = useLocation();
 
     const notifySuceess = (text) => {
         toast.dismiss();
@@ -138,6 +145,23 @@ function TodoListPage() {
             loadWorkspace();
         }
     }, [isAuthenticated]);
+
+    // Apply URL filters (e.g. ?status=overdue) when arriving at the page
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const status = params.get('status');
+        if (status) {
+            setStatusFilter(status);
+        }
+        const priority = params.get('priority');
+        if (priority) {
+            setPriorityFilter(priority);
+        }
+        const project = params.get('project');
+        if (project) {
+            setProjectFilter(project);
+        }
+    }, [location.search]);
 
     useEffect(() => {
         updateGridPage(0);
@@ -711,55 +735,56 @@ function TodoListPage() {
                         </Stack>
                     </Stack>
 
-                    <Stack direction="row" flexWrap="wrap" gap={0.8}>
-                        {statusOptions.map((option) => (
-                            <Chip
-                                clickable
-                                color={statusFilter === option.key ? (option.key === 'overdue' ? 'error' : 'secondary') : 'default'}
-                                key={option.key}
-                                label={`${option.label} (${option.count})`}
-                                onClick={() => setStatusFilter(option.key)}
-                                variant={statusFilter === option.key ? 'filled' : 'outlined'}
-                            />
-                        ))}
-                    </Stack>
-
-                    <Stack direction="row" flexWrap="wrap" gap={0.8}>
-                        {priorityOptions.map((option) => (
-                            <Chip
-                                clickable
-                                color={priorityFilter === option.key ? 'primary' : 'default'}
-                                key={option.key}
-                                label={`${option.label} (${option.count})`}
-                                onClick={() => setPriorityFilter(option.key)}
-                                variant={priorityFilter === option.key ? 'filled' : 'outlined'}
-                            />
-                        ))}
-                    </Stack>
-
-                    <Stack direction="row" flexWrap="wrap" gap={0.8}>
-                        <Chip
-                            clickable
-                            color={projectFilter === 'all' ? 'secondary' : 'default'}
-                            label={`All projects (${totalTodos})`}
-                            onClick={() => setProjectFilter('all')}
-                            size="small"
-                            variant={projectFilter === 'all' ? 'filled' : 'outlined'}
-                        />
-                        {projectOptions.map((project) => (
-                            <Box
-                                key={project._id || project.name}
-                                onClick={() => setProjectFilter(project.name)}
-                                sx={{ cursor: 'pointer', display: 'inline-flex' }}
+                    <Stack direction="row" flexWrap="wrap" gap={0.8} alignItems="center">
+                        <FormControl size="small" sx={{ minWidth: 180 }}>
+                            <InputLabel id="status-select-label">Status</InputLabel>
+                            <Select
+                                labelId="status-select-label"
+                                value={statusFilter}
+                                label="Status"
+                                onChange={(e) => setStatusFilter(e.target.value)}
                             >
-                                <ProjectChip
-                                    label={`${project.name} (${project.tasksCount})`}
-                                    project={project.name}
-                                    variant={projectFilter === project.name ? 'filled' : 'outlined'}
-                                />
-                            </Box>
-                        ))}
+                                <MenuItem value="all">All ({statusCounts.all})</MenuItem>
+                                <MenuItem value="active">In focus ({statusCounts.active})</MenuItem>
+                                <MenuItem value="overdue">Overdue ({statusCounts.overdue})</MenuItem>
+                                <MenuItem value="done">Done ({statusCounts.done})</MenuItem>
+                            </Select>
+                        </FormControl>
+
+                        <FormControl size="small" sx={{ minWidth: 220 }}>
+                            <InputLabel id="project-select-label">Project</InputLabel>
+                            <Select
+                                labelId="project-select-label"
+                                value={projectFilter}
+                                label="Project"
+                                onChange={(e) => setProjectFilter(e.target.value)}
+                            >
+                                <MenuItem value="all">All projects ({totalTodos})</MenuItem>
+                                {projectOptions.map((project) => (
+                                    <MenuItem key={project._id || project.name} value={project.name}>
+                                        {`${project.name} (${project.tasksCount})`}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <FormControl size="small" sx={{ minWidth: 160 }}>
+                            <InputLabel id="priority-select-label">Priority</InputLabel>
+                            <Select
+                                labelId="priority-select-label"
+                                value={priorityFilter}
+                                label="Priority"
+                                onChange={(e) => setPriorityFilter(e.target.value)}
+                            >
+                                <MenuItem value="all">All priorities ({priorityCounts.all})</MenuItem>
+                                <MenuItem value="high">High ({priorityCounts.high})</MenuItem>
+                                <MenuItem value="medium">Medium ({priorityCounts.medium})</MenuItem>
+                                <MenuItem value="low">Low ({priorityCounts.low})</MenuItem>
+                            </Select>
+                        </FormControl>
                     </Stack>
+
+
 
                     {viewMode === 'list' && (
                         <TodoTable

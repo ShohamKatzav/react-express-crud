@@ -235,7 +235,7 @@ function DashboardPage() {
                                             ? `${overdueTodos} task${overdueTodos === 1 ? '' : 's'} are overdue and ${todayTodos} land today.`
                                             : `Nothing is overdue. ${todayTodos} task${todayTodos === 1 ? '' : 's'} land today.`}
                                     </Typography>
-                                    <Button component={Link} size="small" to="/workspace" variant="outlined">
+                                    <Button component={Link} size="small" to="/workspace?status=overdue" variant="outlined">
                                         Review in workspace
                                     </Button>
                                 </Stack>
