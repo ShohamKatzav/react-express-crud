@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth0 } from "@auth0/auth0-react";
 import Box from '@mui/material/Box';
@@ -32,6 +32,7 @@ const normalizeProjectRecord = (project) => ({
 });
 
 function DashboardPage() {
+    const navigate = useNavigate();
     const baseUrl = import.meta.env.VITE_APP_BASE_URL;
     const { isAuthenticated, getAccessTokenSilently, isLoading } = useAuth0();
     const [todos, setTodos] = useState([]);
@@ -270,11 +271,13 @@ function DashboardPage() {
                                 return (
                                     <Paper
                                         key={project._id || project.name}
+                                        onClick={() => navigate(`/workspace?project=${encodeURIComponent(project.name)}`)}
                                         sx={{
                                             p: 1.2,
                                             borderRadius: '18px',
                                             border: '1px solid rgba(31, 64, 87, 0.08)',
                                             background: 'rgba(255, 255, 255, 0.72)',
+                                            cursor: 'pointer'
                                         }}
                                         variant="outlined"
                                     >

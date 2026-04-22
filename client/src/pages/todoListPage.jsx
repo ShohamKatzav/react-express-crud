@@ -160,7 +160,7 @@ function TodoListPage() {
         }
         const project = params.get('project');
         if (project) {
-            setProjectFilter(project);
+            setProjectFilter(normalizeProjectValue(project));
         }
     }, [location.search]);
 
@@ -182,7 +182,10 @@ function TodoListPage() {
     }, [selectedRows.length, viewMode]);
 
     useEffect(() => {
-        if (projectFilter !== 'all' && !projects.some((project) => project.name === projectFilter)) {
+        // Only reset the project filter if we actually have projects loaded.
+        // This avoids overwriting a project filter applied from a URL param
+        // before the projects list has been fetched.
+        if (projects.length > 0 && projectFilter !== 'all' && !projects.some((project) => project.name === projectFilter)) {
             setProjectFilter('all');
         }
     }, [projectFilter, projects]);
