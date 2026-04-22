@@ -55,7 +55,8 @@ const listProjectsWithCounts = async (userId) => {
     ]);
 
     const countsMap = counts.reduce((accumulator, item) => {
-        accumulator[normalizeProjectName(item._id)] = item.count;
+        const key = normalizeProjectName(item._id);
+        accumulator[key] = (accumulator[key] || 0) + item.count;
         return accumulator;
     }, {});
 
