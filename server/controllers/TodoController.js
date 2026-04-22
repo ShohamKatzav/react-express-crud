@@ -82,7 +82,7 @@ const FetchTodos = async (req, res) => {
         todos.length ? res.send(todos) : res.sendStatus(204);
     } catch (err) {
         console.error('Failed to retrieve todos:', err);
-        res.sendStatus(500);
+        res.status(500).send({ message: 'Unable to retrieve todos' });
     }
 };
 
@@ -93,7 +93,7 @@ const CleanList = async (req, res) => {
     }
     catch (err) {
         console.error('Failed to delete document:', err);
-        res.sendStatus(500);
+        res.status(500).send({ message: 'Unable to clear list' });
     }
 };
 
@@ -103,7 +103,7 @@ const GetTodos = async (req, res) => {
         res.send(todos);
     } catch (err) {
         console.error('Failed to retrieve todos:', err);
-        res.sendStatus(500);
+        res.status(500).send({ message: 'Unable to retrieve todos' });
     }
 };
 
@@ -114,13 +114,13 @@ const CreateTodo = async (req, res) => {
             const payload = buildTodoPayload(req.body);
             await ensureProjectExists(req.user.sub, payload.project);
             const newDoc = await Todo.create({ user_id: req.user.sub, ...payload });
-            res.send(newDoc);
+            return res.status(201).send(newDoc);
         }
-        else
-            res.sendStatus(204)
+
+        return res.status(409).send({ message: 'Max list size is 150' });
     } catch (err) {
         console.error('Failed to insert document:', err);
-        res.sendStatus(500);
+        res.status(500).send({ message: 'Unable to create todo' });
     }
 };
 
@@ -135,14 +135,14 @@ const ImportTodos = async (req, res) => {
             .filter((item) => item.todo);
 
         if (!sanitizedTodos.length) {
-            return res.status(400).send({ message: "No valid todos were provided." });
+            return res.status(400).send({ message: 'No valid todos were provided.' });
         }
 
         const count = await Todo.find({ user_id: req.user.sub }).count();
         const availableSlots = Math.max(150 - count, 0);
 
         if (availableSlots === 0) {
-            return res.status(409).send({ message: "Max list size is 150", inserted: [], skipped: sanitizedTodos.length });
+            return res.status(409).send({ message: 'Max list size is 150', inserted: [], skipped: sanitizedTodos.length });
         }
 
         const todosToInsert = sanitizedTodos.slice(0, availableSlots);
@@ -156,18 +156,22 @@ const ImportTodos = async (req, res) => {
         });
     } catch (err) {
         console.error('Failed to import todos:', err);
-        res.sendStatus(500);
+        res.status(500).send({ message: 'Unable to import todos' });
     }
 };
 
 const DeleteTodo = async (req, res) => {
     try {
-        await Todo.findOneAndDelete({ _id: req.body.id, user_id: req.user.sub });
+        const deleted = await Todo.findOneAndDelete({ _id: req.body.id, user_id: req.user.sub });
+        if (!deleted) {
+            return res.status(404).send({ message: 'Todo not found' });
+        }
+
         res.sendStatus(204);
     }
     catch (err) {
         console.error('Failed to delete document:', err);
-        res.sendStatus(500);
+        res.status(500).send({ message: 'Unable to delete todo' });
     }
 };
 
@@ -180,13 +184,18 @@ const EditText = async (req, res) => {
         const updatedDoc = await Todo.findOneAndUpdate(
             { _id: req.body.id, user_id: req.user.sub },
             payload,
-            { returnDocument: "after" }
+            { returnDocument: 'after' }
         );
+
+        if (!updatedDoc) {
+            return res.status(404).send({ message: 'Todo not found' });
+        }
+
         res.send(updatedDoc);
     }
     catch (err) {
-        console.error('Failed to update complete for document:', err);
-        res.sendStatus(500);
+        console.error('Failed to update todo text:', err);
+        res.status(500).send({ message: 'Unable to update todo' });
     }
 };
 
@@ -195,13 +204,18 @@ const EditStatus = async (req, res) => {
         const updatedDoc = await Todo.findOneAndUpdate(
             { _id: req.body.id, user_id: req.user.sub },
             { completed: req.body.completed },
-            { returnDocument: "after" }
+            { returnDocument: 'after' }
         );
+
+        if (!updatedDoc) {
+            return res.status(404).send({ message: 'Todo not found' });
+        }
+
         res.send(updatedDoc);
     }
     catch (err) {
-        console.error('Failed to update complete for document:', err);
-        res.sendStatus(500);
+        console.error('Failed to update todo status:', err);
+        res.status(500).send({ message: 'Unable to update todo status' });
     }
 };
 
@@ -212,13 +226,18 @@ const EditProject = async (req, res) => {
         const updatedDoc = await Todo.findOneAndUpdate(
             { _id: req.body.id, user_id: req.user.sub },
             { project: nextProject },
-            { returnDocument: "after" }
+            { returnDocument: 'after' }
         );
+
+        if (!updatedDoc) {
+            return res.status(404).send({ message: 'Todo not found' });
+        }
+
         res.send(updatedDoc);
     }
     catch (err) {
-        console.error('Failed to update project for document:', err);
-        res.sendStatus(500);
+        console.error('Failed to update todo project:', err);
+        res.status(500).send({ message: 'Unable to update todo project' });
     }
 };
 
@@ -227,13 +246,18 @@ const EditPriority = async (req, res) => {
         const updatedDoc = await Todo.findOneAndUpdate(
             { _id: req.body.id, user_id: req.user.sub },
             { priority: normalizePriority(req.body.priority) },
-            { returnDocument: "after" }
+            { returnDocument: 'after' }
         );
+
+        if (!updatedDoc) {
+            return res.status(404).send({ message: 'Todo not found' });
+        }
+
         res.send(updatedDoc);
     }
     catch (err) {
-        console.error('Failed to update priority for document:', err);
-        res.sendStatus(500);
+        console.error('Failed to update todo priority:', err);
+        res.status(500).send({ message: 'Unable to update todo priority' });
     }
 };
 
@@ -242,29 +266,39 @@ const EditDueDate = async (req, res) => {
         const updatedDoc = await Todo.findOneAndUpdate(
             { _id: req.body.id, user_id: req.user.sub },
             { dueDate: normalizeDueDate(req.body.dueDate) },
-            { returnDocument: "after" }
+            { returnDocument: 'after' }
         );
+
+        if (!updatedDoc) {
+            return res.status(404).send({ message: 'Todo not found' });
+        }
+
         res.send(updatedDoc);
     }
     catch (err) {
-        console.error('Failed to update due date for document:', err);
-        res.sendStatus(500);
+        console.error('Failed to update todo due date:', err);
+        res.status(500).send({ message: 'Unable to update todo due date' });
     }
 };
 
 const DeleteSelected = async (req, res) => {
     try {
-        await Todo.deleteMany({
+        const result = await Todo.deleteMany({
             user_id: req.user.sub,
             _id: {
                 $in: req.body.ids
             }
         });
+
+        if (!result || result.deletedCount === 0) {
+            return res.status(404).send({ message: 'No todos deleted' });
+        }
+
         res.sendStatus(204);
     }
     catch (err) {
-        console.error('Failed to delete document:', err);
-        res.sendStatus(500);
+        console.error('Failed to delete documents:', err);
+        res.status(500).send({ message: 'Unable to delete todos' });
     }
 };
 
@@ -276,18 +310,23 @@ const ChangeSelectedStatus = async (req, res) => {
                 $in: req.body.ids
             }
         },
-        { completed: req.body.completed });
+            { completed: req.body.completed });
         const updatedDoc = await Todo.find({
             user_id: req.user.sub,
             _id: {
                 $in: req.body.ids
             }
         }).exec();
+
+        if (!updatedDoc || !updatedDoc.length) {
+            return res.status(404).send({ message: 'No todos found' });
+        }
+
         res.send(updatedDoc);
     }
     catch (err) {
-        console.error('Failed to update complete for document:', err);
-        res.sendStatus(500);
+        console.error('Failed to update todos status:', err);
+        res.status(500).send({ message: 'Unable to update selected todos' });
     }
 };
 

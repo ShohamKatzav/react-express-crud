@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import { useGridApiRef } from "@mui/x-data-grid";
 import { toast } from 'react-toastify';
 import { useAuth0 } from "@auth0/auth0-react";
@@ -105,8 +105,8 @@ function TodoListPage() {
             }
 
             const [todoResponse, projectResponse] = await Promise.all([
-                axios.get(`${baseUrl}/todo`, resolvedConfig),
-                axios.get(`${baseUrl}/projects`, resolvedConfig),
+                api.get(`/todo`, resolvedConfig),
+                api.get(`/projects`, resolvedConfig),
             ]);
 
             setDataToShow(todoResponse.data.map(normalizeTodoRecord));
@@ -126,7 +126,7 @@ function TodoListPage() {
         }
 
         try {
-            const response = await axios.get(`${baseUrl}/projects`, existingConfig);
+            const response = await api.get(`/projects`, existingConfig);
             setProjects(response.data.map(normalizeProjectRecord));
         } catch (e) {
             console.log(e.message);
@@ -157,7 +157,7 @@ function TodoListPage() {
 
     const fetchTodos = async (amount) => {
         try {
-            const response = await axios.post(`${baseUrl}/fetchTodos`, { fetchAmount: amount }, config);
+            const response = await api.post(`/fetchTodos`, { fetchAmount: amount }, config);
             if (response.status === 200) {
                 setDataToShow((current) => [...current, ...response.data.map(normalizeTodoRecord)]);
                 setTodoAdded(true);
@@ -175,7 +175,7 @@ function TodoListPage() {
 
     const cleanList = async () => {
         try {
-            const response = await axios.delete(`${baseUrl}/cleanList`, config);
+            const response = await api.delete(`/cleanList`, config);
             if (response.status === 204) {
                 updateGridPage(0);
                 setDataToShow([]);
@@ -192,7 +192,7 @@ function TodoListPage() {
 
     const addTodo = async ({ completed, dueDate, priority, project, value }) => {
         try {
-            const response = await axios.post(`${baseUrl}/todo`, { value, completed, priority, dueDate, project }, config);
+            const response = await api.post(`/todo`, { value, completed, priority, dueDate, project }, config);
             if (response.status === 200) {
                 setTodoAdded(true);
                 setIsDataRendered(false);
@@ -212,7 +212,7 @@ function TodoListPage() {
 
     const importTodos = async (todos) => {
         try {
-            const response = await axios.post(`${baseUrl}/todo/import`, { todos }, config);
+            const response = await api.post(`/todo/import`, { todos }, config);
             const insertedTodos = response.data?.inserted?.map(normalizeTodoRecord) || [];
             const skippedTodos = response.data?.skipped || 0;
 
@@ -253,7 +253,7 @@ function TodoListPage() {
         }
 
         try {
-            const response = await axios.post(`${baseUrl}/projects`, { name: normalizedName }, config);
+            const response = await api.post(`/projects`, { name: normalizedName }, config);
             setProjects(response.data.projects.map(normalizeProjectRecord));
             notifySuceess(`Project "${normalizeProjectValue(normalizedName)}" is ready`);
             return true;
@@ -273,7 +273,7 @@ function TodoListPage() {
 
         const existingProject = projects.find((project) => project._id === projectId);
         try {
-            await axios.put(`${baseUrl}/projects/${projectId}`, { name: normalizedName }, config);
+            await api.put(`/projects/${projectId}`, { name: normalizedName }, config);
             await loadWorkspace(config);
             if (projectFilter === existingProject?.name) {
                 setProjectFilter(normalizeProjectValue(normalizedName));
@@ -297,7 +297,7 @@ function TodoListPage() {
 
     const deleteProject = async (projectId, projectName) => {
         try {
-            await axios.delete(`${baseUrl}/projects/${projectId}`, config);
+            await api.delete(`/projects/${projectId}`, config);
             await loadWorkspace(config);
             if (projectFilter === projectName) {
                 setProjectFilter('all');
@@ -317,7 +317,7 @@ function TodoListPage() {
 
     const deleteTodo = async (todo_Id) => {
         try {
-            await axios.delete(`${baseUrl}/todo`, { headers: { Authorization: config.headers.Authorization }, data: { id: todo_Id } });
+            await api.delete(`/todo`, { headers: { Authorization: config.headers.Authorization }, data: { id: todo_Id } });
             setDataToShow((current) => current.filter((item) => item._id !== todo_Id));
             notifySuceess("Todo deleted successfully");
             await refreshProjects(config);
@@ -439,7 +439,7 @@ function TodoListPage() {
 
     const sendPutRequestAndUpdateState = async (requestParams, index, endPoint) => {
         try {
-            const response = await axios.put(baseUrl + endPoint, requestParams, config);
+            const response = await api.put(endPoint, requestParams, config);
             if (!response.data) {
                 return false;
             }
@@ -457,7 +457,7 @@ function TodoListPage() {
 
     const deleteSelected = async () => {
         try {
-            await axios.delete(`${baseUrl}/delete-selected`, {
+            await api.delete(`/delete-selected`, {
                 headers: { Authorization: config.headers.Authorization }, data: { ids: selectedRows }
             });
             setDataToShow((current) => current.filter((todo) => !selectedRows.includes(todo._id)));
@@ -483,7 +483,7 @@ function TodoListPage() {
 
         const requestParams = { ids: selectedRows, completed: newStatus };
         try {
-            const response = await axios.put(`${baseUrl}/change-selected-status`, requestParams, config);
+            const response = await api.put(`/change-selected-status`, requestParams, config);
             const updatedTodos = response.data.map(normalizeTodoRecord);
             setDataToShow((current) => {
                 const newData = [...current];

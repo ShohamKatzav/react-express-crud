@@ -13,6 +13,8 @@ import ProfilePage from './pages/profilePage';
 import TodoListPage from './pages/todoListPage';
 import ContactPage from './pages/contactPage';
 import AboutPage from './pages/aboutPage';
+import NotFoundPage from './pages/notFoundPage';
+import ErrorPage from './pages/errorPage';
 import Footer from './components/footer';
 
 const router = createBrowserRouter([
@@ -57,6 +59,8 @@ function Root() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/error" element={<ErrorPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
       <Footer />

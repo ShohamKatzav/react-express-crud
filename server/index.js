@@ -27,11 +27,22 @@ const projectRoutes = require("./routes/Project");
 app.use("/", todoRoutes);
 app.use("/", projectRoutes);
 
+// 404 handler - when no route matches
+app.use((req, res) => {
+  res.status(404).json({ error: 'Resource not found' });
+});
+
+// Global error handler
 app.use((err, req, res, next) => {
-  if (err.name === 'UnauthorizedError') {
-    console.log(err);
+  if (err && err.name === 'UnauthorizedError') {
+    console.error('Auth error:', err.message || err);
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  console.error('Unhandled error:', err && err.stack ? err.stack : err);
+  const status = err && err.status && Number.isInteger(err.status) ? err.status : 500;
+  const message = err && err.message ? err.message : 'Something went wrong on the server';
+  res.status(status).json({ error: message });
 });
 
 

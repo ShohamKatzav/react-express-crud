@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { useAuth0 } from "@auth0/auth0-react";
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -52,8 +52,8 @@ function DashboardPage() {
                 };
 
                 const [todoResponse, projectResponse] = await Promise.all([
-                    axios.get(`${baseUrl}/todo`, config),
-                    axios.get(`${baseUrl}/projects`, config),
+                    api.get(`/todo`, config),
+                    api.get(`/projects`, config),
                 ]);
 
                 setTodos(todoResponse.data.map(normalizeTodoRecord));
