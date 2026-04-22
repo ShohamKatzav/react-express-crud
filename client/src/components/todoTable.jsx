@@ -16,46 +16,27 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
-import FilterListRoundedIcon from '@mui/icons-material/FilterListRounded';
 import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import ProjectChip from './projectChip';
 import { formatDueDate, getDueDateState, getPriorityColor, getPriorityLabel } from '../utils/todoFields';
 
 const PRIORITY_SORT_ORDER = { high: 1, medium: 2, low: 3 };
+
 const parseQuickFilter = (searchInput) =>
     searchInput.split(',').map((value) => value.trim()).filter(Boolean);
+
 const compareDueDates = (dateA, dateB) => {
     const normalizedA = dateA || '9999-12-31';
     const normalizedB = dateB || '9999-12-31';
     return normalizedA.localeCompare(normalizedB);
 };
 
-function TodoToolbar({
-    quickFilterValue,
-    setQuickFilterValue,
-    priorityCounts,
-    priorityFilter,
-    setPriorityFilter,
-    statusCounts,
-    statusFilter,
-    setStatusFilter,
-}) {
-    const filterOptions = [
-        { key: 'all', label: 'All', count: statusCounts.all },
-        { key: 'active', label: 'In focus', count: statusCounts.active },
-        { key: 'done', label: 'Done', count: statusCounts.done },
-    ];
-    const priorityOptions = [
-        { key: 'all', label: 'All priorities', count: priorityCounts.all },
-        { key: 'high', label: 'High', count: priorityCounts.high },
-        { key: 'medium', label: 'Medium', count: priorityCounts.medium },
-        { key: 'low', label: 'Low', count: priorityCounts.low },
-    ];
-
+function TodoToolbar({ quickFilterValue, setQuickFilterValue, totalCount }) {
     return (
         <Stack
             direction={{ xs: 'column', md: 'row' }}
@@ -68,35 +49,10 @@ function TodoToolbar({
                     Your task list
                 </Typography>
                 <Typography sx={{ color: 'text.secondary' }}>
-                    Search, select, and update tasks directly from the grid.
+                    Search across the current view and make quick updates inline.
                 </Typography>
-                <Stack direction="row" flexWrap="wrap" gap={0.8} sx={{ mt: 1.3 }}>
-                    {filterOptions.map((option) => (
-                        <Chip
-                            clickable
-                            color={statusFilter === option.key ? 'secondary' : 'default'}
-                            icon={<FilterListRoundedIcon />}
-                            key={option.key}
-                            label={`${option.label} (${option.count})`}
-                            onClick={() => setStatusFilter(option.key)}
-                            size="small"
-                            variant={statusFilter === option.key ? 'filled' : 'outlined'}
-                        />
-                    ))}
-                </Stack>
-                <Stack direction="row" flexWrap="wrap" gap={0.8} sx={{ mt: 1 }}>
-                    {priorityOptions.map((option) => (
-                        <Chip
-                            clickable
-                            color={priorityFilter === option.key ? 'primary' : 'default'}
-                            icon={<FlagRoundedIcon />}
-                            key={option.key}
-                            label={`${option.label} (${option.count})`}
-                            onClick={() => setPriorityFilter(option.key)}
-                            size="small"
-                            variant={priorityFilter === option.key ? 'filled' : 'outlined'}
-                        />
-                    ))}
+                <Stack direction="row" flexWrap="wrap" gap={0.8} sx={{ mt: 1.2 }}>
+                    <Chip label={`${totalCount} task${totalCount === 1 ? '' : 's'} visible`} size="small" variant="outlined" />
                 </Stack>
             </Box>
             <Box
@@ -104,14 +60,14 @@ function TodoToolbar({
                     display: 'flex',
                     alignItems: 'center',
                     width: '100%',
-                    maxWidth: { md: 260 },
+                    maxWidth: { md: 280 },
                     borderRadius: 999,
                 }}
             >
                 <OutlinedInput
                     fullWidth
                     onChange={(event) => setQuickFilterValue(event.target.value)}
-                    placeholder="Search..."
+                    placeholder="Search this view..."
                     startAdornment={
                         <InputAdornment position="start">
                             <SearchRoundedIcon sx={{ fontSize: '1rem' }} />
@@ -164,9 +120,9 @@ function TodoToolbar({
 function EmptyState() {
     return (
         <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ height: '100%', py: 5 }}>
-            <Typography variant="h6">Nothing here yet</Typography>
-            <Typography sx={{ color: 'text.secondary', maxWidth: 34 + 'ch', textAlign: 'center' }}>
-                Add your first task or import a sample batch to bring the workspace to life.
+            <Typography variant="h6">Nothing matches these filters</Typography>
+            <Typography sx={{ color: 'text.secondary', maxWidth: 38 + 'ch', textAlign: 'center' }}>
+                Try another project or status filter, or add a fresh task to fill the workspace back up.
             </Typography>
         </Stack>
     );
@@ -187,22 +143,20 @@ function TodoTable({
     dataToShow,
     deleteTodo,
     editDueDate,
+    editProject,
     editPriority,
     editText,
     editStatus,
     isLoading,
-    priorityCounts,
-    priorityFilter,
+    projects,
     setCurrentPaginationModel,
-    setPriorityFilter,
     apiRef,
     setSelectedRows,
-    statusCounts,
-    statusFilter,
-    setStatusFilter,
 }) {
     const [priorityMenuAnchor, setPriorityMenuAnchor] = useState(null);
     const [priorityMenuTodo, setPriorityMenuTodo] = useState(null);
+    const [projectMenuAnchor, setProjectMenuAnchor] = useState(null);
+    const [projectMenuTodo, setProjectMenuTodo] = useState(null);
     const [dueDatePopoverAnchor, setDueDatePopoverAnchor] = useState(null);
     const [dueDatePopoverTodo, setDueDatePopoverTodo] = useState(null);
     const [dueDateDraft, setDueDateDraft] = useState('');
@@ -219,6 +173,17 @@ function TodoTable({
         setPriorityMenuTodo(null);
     };
 
+    const openProjectMenu = (event, row) => {
+        event.stopPropagation();
+        setProjectMenuAnchor(event.currentTarget);
+        setProjectMenuTodo(row);
+    };
+
+    const closeProjectMenu = () => {
+        setProjectMenuAnchor(null);
+        setProjectMenuTodo(null);
+    };
+
     const handlePrioritySelect = async (priority) => {
         if (!priorityMenuTodo) {
             return;
@@ -227,6 +192,16 @@ function TodoTable({
         const todoId = priorityMenuTodo._id;
         closePriorityMenu();
         await editPriority(todoId, priority);
+    };
+
+    const handleProjectSelect = async (projectName) => {
+        if (!projectMenuTodo) {
+            return;
+        }
+
+        const todoId = projectMenuTodo._id;
+        closeProjectMenu();
+        await editProject(todoId, projectName);
     };
 
     const openDueDateEditor = (event, row) => {
@@ -263,173 +238,184 @@ function TodoTable({
         await editDueDate(todoId, '');
     };
 
-    const columns =
-        [
-            {
-                field: '_id',
-                headerName: "Ref",
-                minWidth: 110,
-                sortable: false,
-                cellClassName: 'todo-table__cell--centered',
-                renderCell: (params) => (
+    const columns = [
+        {
+            field: '_id',
+            headerName: "Ref",
+            minWidth: 108,
+            sortable: false,
+            cellClassName: 'todo-table__cell--centered',
+            renderCell: (params) => (
+                <Chip
+                    label={`#${params.row._id.slice(-4).toUpperCase()}`}
+                    size="small"
+                    variant="outlined"
+                />
+            ),
+        },
+        {
+            field: 'todo',
+            flex: 1.2,
+            headerName: "Task",
+            minWidth: 240,
+            cellClassName: 'todo-table__cell--task',
+            renderCell: (params) => (
+                <Box sx={{ py: 1.6, width: '100%' }}>
+                    <Typography
+                        sx={{
+                            whiteSpace: 'normal',
+                            lineHeight: 1.5,
+                            fontWeight: 700,
+                            color: params.row.completed ? 'text.secondary' : 'text.primary',
+                            textDecoration: params.row.completed ? 'line-through' : 'none',
+                        }}
+                    >
+                        {params.value}
+                    </Typography>
+                </Box>
+            ),
+        },
+        {
+            field: 'project',
+            flex: 0.5,
+            headerName: 'Project',
+            minWidth: 140,
+            cellClassName: 'todo-table__cell--centered',
+            renderCell: (params) => (
+                <Box onClick={(event) => openProjectMenu(event, params.row)} sx={{ cursor: 'pointer' }}>
+                    <ProjectChip project={params.value} />
+                </Box>
+            ),
+        },
+        {
+            field: "completed",
+            flex: 0.45,
+            headerName: "Status",
+            minWidth: 140,
+            sortable: false,
+            cellClassName: 'todo-table__cell--centered',
+            renderCell: (params) => {
+                const onClick = (event) => {
+                    event.stopPropagation();
+                    return editStatus(params.row._id);
+                };
+                return (
                     <Chip
-                        label={`#${params.row._id.slice(-4).toUpperCase()}`}
+                        clickable
+                        color={params.value ? 'success' : 'warning'}
+                        icon={params.value ? <TaskAltRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
+                        label={params.value ? 'Done' : 'In focus'}
+                        onClick={onClick}
+                        variant={params.value ? 'filled' : 'outlined'}
+                    />
+                );
+            },
+            type: 'boolean'
+        },
+        {
+            field: "priority",
+            flex: 0.45,
+            headerName: "Priority",
+            minWidth: 140,
+            sortComparator: (priorityA, priorityB) =>
+                (PRIORITY_SORT_ORDER[priorityA || 'medium'] || PRIORITY_SORT_ORDER.medium)
+                - (PRIORITY_SORT_ORDER[priorityB || 'medium'] || PRIORITY_SORT_ORDER.medium),
+            cellClassName: 'todo-table__cell--centered',
+            renderCell: (params) => {
+                const onClick = (event) => {
+                    openPriorityMenu(event, params.row);
+                };
+
+                return (
+                    <Chip
+                        clickable
+                        color={getPriorityColor(params.value || 'medium')}
+                        icon={<FlagRoundedIcon />}
+                        label={getPriorityLabel(params.value || 'medium')}
+                        onClick={onClick}
                         size="small"
                         variant="outlined"
                     />
-                ),
+                );
             },
-            {
-                field: 'todo',
-                flex: 1.2,
-                headerName: "Task",
-                minWidth: 240,
-                cellClassName: 'todo-table__cell--task',
-                renderCell: (params) => (
-                    <Box sx={{ py: 1.6, width: '100%' }}>
-                        <Typography
-                            sx={{
-                                whiteSpace: 'normal',
-                                lineHeight: 1.5,
-                                fontWeight: 700,
-                                color: params.row.completed ? 'text.secondary' : 'text.primary',
-                                textDecoration: params.row.completed ? 'line-through' : 'none',
-                            }}
-                        >
-                            {params.value}
-                        </Typography>
-                    </Box>
-                ),
-            },
-            {
-                field: "completed",
-                flex: 0.45,
-                headerName: "Status",
-                minWidth: 140,
-                sortable: false,
-                cellClassName: 'todo-table__cell--centered',
-                renderCell: (params) => {
-                    const onClick = (e) => {
-                        e.stopPropagation();
-                        return editStatus(params.row._id);
-                    };
-                    return (
-                        <Chip
-                            clickable
-                            color={params.value ? 'success' : 'warning'}
-                            icon={params.value ? <TaskAltRoundedIcon /> : <RadioButtonUncheckedRoundedIcon />}
-                            label={params.value ? 'Done' : 'In focus'}
-                            onClick={onClick}
-                            variant={params.value ? 'filled' : 'outlined'}
-                        />
-                    );
-                },
-                type: 'boolean'
-            },
-            {
-                field: "priority",
-                flex: 0.45,
-                headerName: "Priority",
-                minWidth: 140,
-                sortComparator: (priorityA, priorityB) =>
-                    (PRIORITY_SORT_ORDER[priorityA || 'medium'] || PRIORITY_SORT_ORDER.medium)
-                    - (PRIORITY_SORT_ORDER[priorityB || 'medium'] || PRIORITY_SORT_ORDER.medium),
-                cellClassName: 'todo-table__cell--centered',
-                renderCell: (params) => {
-                    const onClick = (event) => {
-                        openPriorityMenu(event, params.row);
-                    };
+        },
+        {
+            field: "dueDate",
+            flex: 0.6,
+            headerName: "Due date",
+            minWidth: 170,
+            sortComparator: compareDueDates,
+            cellClassName: 'todo-table__cell--centered',
+            renderCell: (params) => {
+                const dueDate = params.value || '';
+                const dueDateState = getDueDateState(dueDate);
+                const isComplete = Boolean(params.row.completed);
 
-                    return (
-                        <Chip
-                            clickable
-                            color={getPriorityColor(params.value || 'medium')}
-                            icon={<FlagRoundedIcon />}
-                            label={getPriorityLabel(params.value || 'medium')}
-                            onClick={onClick}
-                            size="small"
-                            variant="outlined"
-                        />
-                    );
-                },
-            },
-            {
-                field: "dueDate",
-                flex: 0.55,
-                headerName: "Due date",
-                minWidth: 160,
-                sortComparator: compareDueDates,
-                cellClassName: 'todo-table__cell--centered',
-                renderCell: (params) => {
-                    const dueDate = params.value || '';
-                    const dueDateState = getDueDateState(dueDate);
-                    const isComplete = Boolean(params.row.completed);
+                let color = 'default';
+                let variant = 'outlined';
 
-                    let color = 'default';
-                    let variant = 'outlined';
-
-                    if (dueDateState === 'today') {
-                        color = 'secondary';
-                        variant = 'filled';
-                    } else if (dueDateState === 'overdue' && !isComplete) {
-                        color = 'error';
-                        variant = 'filled';
-                    } else if (dueDateState === 'upcoming') {
-                        color = 'info';
-                    }
-
-                    const onClick = (event) => {
-                        openDueDateEditor(event, params.row);
-                    };
-
-                    return (
-                        <Chip
-                            clickable
-                            color={color}
-                            icon={<EventRoundedIcon />}
-                            label={formatDueDate(dueDate)}
-                            onClick={onClick}
-                            size="small"
-                            variant={variant}
-                        />
-                    );
-                },
-            },
-            {
-                field: "actions",
-                flex: 0.45,
-                headerName: "Actions",
-                minWidth: 140,
-                sortable: false,
-                cellClassName: 'todo-table__cell--centered',
-                renderCell: (params) => {
-                    const handleEdit = (event) => {
-                        event.stopPropagation();
-                        editText(params.row._id);
-                    };
-                    const handleDelete = (event) => {
-                        event.stopPropagation();
-                        deleteTodo(params.row._id);
-                    };
-
-                    return (
-                        <Stack direction="row" spacing={0.6}>
-                            <Tooltip title="Edit task">
-                                <IconButton color="primary" onClick={handleEdit}>
-                                    <EditIcon />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete task">
-                                <IconButton color="error" onClick={handleDelete}>
-                                    <DeleteIcon />
-                                </IconButton>
-                            </Tooltip>
-                        </Stack>
-                    );
+                if (dueDateState === 'today') {
+                    color = 'secondary';
+                    variant = 'filled';
+                } else if (dueDateState === 'overdue' && !isComplete) {
+                    color = 'error';
+                    variant = 'filled';
+                } else if (dueDateState === 'upcoming') {
+                    color = 'info';
                 }
-            },
 
-        ]
+                const onClick = (event) => {
+                    openDueDateEditor(event, params.row);
+                };
+
+                return (
+                    <Chip
+                        clickable
+                        color={color}
+                        icon={<EventRoundedIcon />}
+                        label={formatDueDate(dueDate)}
+                        onClick={onClick}
+                        size="small"
+                        sx={dueDateState === 'overdue' && !isComplete ? { fontWeight: 800 } : undefined}
+                        variant={variant}
+                    />
+                );
+            },
+        },
+        {
+            field: "actions",
+            flex: 0.45,
+            headerName: "Actions",
+            minWidth: 140,
+            sortable: false,
+            cellClassName: 'todo-table__cell--centered',
+            renderCell: (params) => {
+                const handleEdit = (event) => {
+                    event.stopPropagation();
+                    editText(params.row._id);
+                };
+                const handleDelete = (event) => {
+                    event.stopPropagation();
+                    deleteTodo(params.row._id);
+                };
+
+                return (
+                    <Stack direction="row" spacing={0.6}>
+                        <Tooltip title="Edit task">
+                            <IconButton color="primary" onClick={handleEdit}>
+                                <EditIcon />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete task">
+                            <IconButton color="error" onClick={handleDelete}>
+                                <DeleteIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                );
+            }
+        },
+    ];
 
     return (
         dataToShow && (
@@ -445,7 +431,20 @@ function TodoTable({
                         items: [],
                         quickFilterValues: parseQuickFilter(quickFilterValue),
                     }}
-                    getRowClassName={(params) => (params.row.completed ? 'todo-row--complete' : '')}
+                    getRowClassName={(params) => {
+                        const dueDateState = getDueDateState(params.row.dueDate || '');
+                        const classNames = [];
+
+                        if (params.row.completed) {
+                            classNames.push('todo-row--complete');
+                        }
+
+                        if (!params.row.completed && dueDateState === 'overdue') {
+                            classNames.push('todo-row--overdue');
+                        }
+
+                        return classNames.join(' ');
+                    }}
                     getRowHeight={() => 'auto'}
                     getRowId={(row) => row._id}
                     loading={isLoading}
@@ -459,7 +458,7 @@ function TodoTable({
                         setSelectedRows(newRowSelectionModel);
                     }}
                     pageSizeOptions={[5, 10, 25, 100]}
-                rows={dataToShow}
+                    rows={dataToShow}
                     slots={{
                         toolbar: TodoToolbar,
                         loadingOverlay: LoadingState,
@@ -469,12 +468,7 @@ function TodoTable({
                         toolbar: {
                             quickFilterValue,
                             setQuickFilterValue,
-                            priorityCounts,
-                            priorityFilter,
-                            setPriorityFilter,
-                            statusCounts,
-                            statusFilter,
-                            setStatusFilter,
+                            totalCount: dataToShow.length,
                         },
                     }}
                     sx={{
@@ -507,12 +501,20 @@ function TodoTable({
                         },
                         '& .MuiDataGrid-row': {
                             backgroundColor: 'rgba(255, 250, 244, 0.36)',
+                            transition: 'background-color 150ms ease, box-shadow 150ms ease',
                         },
                         '& .MuiDataGrid-row:hover': {
                             backgroundColor: 'rgba(217, 103, 77, 0.08)',
                         },
                         '& .MuiDataGrid-row.todo-row--complete': {
                             backgroundColor: 'rgba(63, 138, 105, 0.06)',
+                        },
+                        '& .MuiDataGrid-row.todo-row--overdue': {
+                            backgroundColor: 'rgba(255, 235, 233, 0.92)',
+                            boxShadow: 'inset 5px 0 0 #d32f2f',
+                        },
+                        '& .MuiDataGrid-row.todo-row--overdue:hover': {
+                            backgroundColor: 'rgba(255, 224, 220, 0.96)',
                         },
                         '& .MuiDataGrid-footerContainer': {
                             borderTop: '1px solid rgba(31, 64, 87, 0.1)',
@@ -525,6 +527,21 @@ function TodoTable({
                         },
                     }}
                 />
+                <Menu
+                    anchorEl={projectMenuAnchor}
+                    onClose={closeProjectMenu}
+                    open={Boolean(projectMenuAnchor)}
+                >
+                    {(projects || []).map((project) => (
+                        <MenuItem
+                            key={project._id || project.name}
+                            onClick={() => handleProjectSelect(project.name)}
+                            selected={projectMenuTodo?.project === project.name}
+                        >
+                            {project.name}
+                        </MenuItem>
+                    ))}
+                </Menu>
                 <Menu
                     anchorEl={priorityMenuAnchor}
                     onClose={closePriorityMenu}
@@ -580,4 +597,5 @@ function TodoTable({
         )
     );
 }
+
 export default TodoTable;

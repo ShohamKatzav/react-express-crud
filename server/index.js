@@ -23,7 +23,9 @@ app.use(bodyParser.json());
 connectDB();
 
 const todoRoutes = require("./routes/Todo");
+const projectRoutes = require("./routes/Project");
 app.use("/", todoRoutes);
+app.use("/", projectRoutes);
 
 app.use((err, req, res, next) => {
   if (err.name === 'UnauthorizedError') {

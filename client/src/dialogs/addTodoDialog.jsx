@@ -8,12 +8,13 @@ import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import { PRIORITY_OPTIONS } from '../utils/todoFields';
+import { DEFAULT_PROJECT, PRIORITY_OPTIONS } from '../utils/todoFields';
 
-function AddToDoDialog({ addTodo, notifyError, notifyWarning }) {
+function AddToDoDialog({ addTodo, notifyError, notifyWarning, projects }) {
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newTodoValue, setNewTodoValue] = useState("");
+  const [project, setProject] = useState(DEFAULT_PROJECT);
   const [isCompleted, setIsCompleted] = useState(false);
   const [priority, setPriority] = useState("medium");
   const [dueDate, setDueDate] = useState("");
@@ -22,6 +23,7 @@ function AddToDoDialog({ addTodo, notifyError, notifyWarning }) {
     notifyWarning("Add operation canceled");
     setIsAddDialogOpen(false);
     setNewTodoValue("");
+    setProject(DEFAULT_PROJECT);
     setIsCompleted(false);
     setPriority("medium");
     setDueDate("");
@@ -32,12 +34,14 @@ function AddToDoDialog({ addTodo, notifyError, notifyWarning }) {
     if (newTodoValue.trim()) {
       const wasAdded = await addTodo({
         value: newTodoValue,
+        project,
         completed: isCompleted,
         priority,
         dueDate,
       });
       if (wasAdded) {
         setNewTodoValue("");
+        setProject(DEFAULT_PROJECT);
         setIsCompleted(false);
         setPriority("medium");
         setDueDate("");
@@ -76,6 +80,20 @@ function AddToDoDialog({ addTodo, notifyError, notifyWarning }) {
                 placeholder="Write the next thing you want to get done..."
                 value={newTodoValue}
               />
+              <TextField
+                fullWidth
+                helperText="Need another project? Create it from Manage Projects."
+                label="Project"
+                onChange={(event) => setProject(event.target.value)}
+                select
+                value={project}
+              >
+                {(projects?.length ? projects : [{ name: DEFAULT_PROJECT }]).map((projectOption) => (
+                  <MenuItem key={projectOption._id || projectOption.name} value={projectOption.name}>
+                    {projectOption.name}
+                  </MenuItem>
+                ))}
+              </TextField>
               <TextField
                 fullWidth
                 label="Status"

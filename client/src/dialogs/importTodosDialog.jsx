@@ -17,8 +17,11 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
 import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
 import EventRoundedIcon from '@mui/icons-material/EventRounded';
+import ProjectChip from '../components/projectChip';
 import {
+    DEFAULT_PROJECT,
     DUE_DATE_COLUMN_NAMES,
+    PROJECT_COLUMN_NAMES,
     TODO_COLUMN_NAMES,
     PRIORITY_COLUMN_NAMES,
     STATUS_COLUMN_NAMES,
@@ -27,6 +30,7 @@ import {
     getPriorityLabel,
     normalizeKey,
     parseDueDateValue,
+    parseProjectValue,
     parsePriorityValue,
     parseStatusValue,
 } from '../utils/todoFields';
@@ -46,10 +50,12 @@ const buildPreviewRows = (rows) =>
             const statusEntry = entries.find(([key]) => STATUS_COLUMN_NAMES.includes(normalizeKey(key)));
             const priorityEntry = entries.find(([key]) => PRIORITY_COLUMN_NAMES.includes(normalizeKey(key)));
             const dueDateEntry = entries.find(([key]) => DUE_DATE_COLUMN_NAMES.includes(normalizeKey(key)));
+            const projectEntry = entries.find(([key]) => PROJECT_COLUMN_NAMES.includes(normalizeKey(key)));
 
             const statusResult = parseStatusValue(statusEntry?.[1]);
             const priorityResult = parsePriorityValue(priorityEntry?.[1]);
             const dueDateResult = parseDueDateValue(dueDateEntry?.[1]);
+            const projectResult = parseProjectValue(projectEntry?.[1]);
             const taskValue = String(todoEntry?.[1] || '').trim();
             const errors = [];
 
@@ -65,10 +71,14 @@ const buildPreviewRows = (rows) =>
             if (!dueDateResult.valid && dueDateEntry) {
                 errors.push(dueDateResult.message);
             }
+            if (!projectResult.valid && projectEntry) {
+                errors.push(projectResult.message);
+            }
 
             return {
                 rowNumber: index + 2,
                 value: taskValue,
+                project: projectResult.value,
                 completed: statusResult.value,
                 priority: priorityResult.value,
                 dueDate: dueDateResult.value,
@@ -153,10 +163,11 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
         }
 
         setIsImportingPreview(true);
-        const didImport = await importTodos(validRows.map(({ completed, dueDate, priority, value }) => ({
+        const didImport = await importTodos(validRows.map(({ completed, dueDate, priority, project, value }) => ({
             completed,
             dueDate,
             priority,
+            project,
             value,
         })));
         setIsImportingPreview(false);
@@ -230,12 +241,12 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
                                         Excel structure
                                     </Typography>
                                     <Typography sx={{ color: 'text.secondary', fontSize: '0.92rem' }}>
-                                        Recommended headers: `task`, `status`, `priority`, `dueDate`
+                                        Recommended headers: `project`, `task`, `status`, `priority`, `dueDate`
                                     </Typography>
                                     <Box
                                         sx={{
                                             display: 'grid',
-                                            gridTemplateColumns: '1.8fr 1fr 1fr 1fr',
+                                            gridTemplateColumns: '1.2fr 1.8fr 1fr 1fr 1fr',
                                             borderRadius: '14px',
                                             overflow: 'hidden',
                                             border: '1px solid rgba(31, 64, 87, 0.08)',
@@ -243,10 +254,10 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
                                         }}
                                     >
                                         {[
-                                            ['task', 'status', 'priority', 'dueDate'],
-                                            ['Buy groceries', 'in focus', 'medium', '2026-04-10'],
-                                            ['Send project update', 'done', 'high', '2026-04-09'],
-                                            ['Book dentist appointment', 'in focus', 'low', ''],
+                                            ['project', 'task', 'status', 'priority', 'dueDate'],
+                                            ['Home', 'Buy groceries', 'in focus', 'medium', '2026-04-10'],
+                                            ['Launch', 'Send project update', 'done', 'high', '2026-04-09'],
+                                            ['Personal', 'Book dentist appointment', 'in focus', 'low', ''],
                                         ].flatMap((row, rowIndex) =>
                                             row.map((cell, cellIndex) => (
                                                 <Box
@@ -256,7 +267,7 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
                                                         py: 0.9,
                                                         backgroundColor: rowIndex === 0 ? 'rgba(31, 64, 87, 0.08)' : 'rgba(255, 255, 255, 0.55)',
                                                         borderBottom: rowIndex < 3 ? '1px solid rgba(31, 64, 87, 0.08)' : 'none',
-                                                        borderRight: cellIndex < 3 ? '1px solid rgba(31, 64, 87, 0.08)' : 'none',
+                                                        borderRight: cellIndex < 4 ? '1px solid rgba(31, 64, 87, 0.08)' : 'none',
                                                         fontFamily: '"Consolas", "Courier New", monospace',
                                                         fontWeight: rowIndex === 0 ? 700 : 400,
                                                         overflowWrap: 'anywhere',
@@ -269,6 +280,9 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
                                     </Box>
                                     <Typography sx={{ color: 'text.secondary', fontSize: '0.9rem' }}>
                                         Accepted task headers: `task`, `todo`, `title`, `value`, `text`, `description`, `name`
+                                    </Typography>
+                                    <Typography sx={{ color: 'text.secondary', fontSize: '0.9rem' }}>
+                                        Accepted project headers: `project`, `workspace`, `bucket`, `group`, `team`
                                     </Typography>
                                     <Typography sx={{ color: 'text.secondary', fontSize: '0.9rem' }}>
                                         Accepted status values: `done`, `completed`, `true`, `yes`, `1`, `in focus`, `active`, `pending`, `false`, `no`, `0`
@@ -379,6 +393,7 @@ function ImportTodosDialog({ fetchTodos, importTodos, notifyError, notifyWarning
                                                             {row.value || 'Missing task'}
                                                         </Typography>
                                                         <Stack direction="row" flexWrap="wrap" gap={0.8}>
+                                                            <ProjectChip project={row.project || DEFAULT_PROJECT} />
                                                             <Chip
                                                                 label={row.completed ? 'Done' : 'In focus'}
                                                                 size="small"

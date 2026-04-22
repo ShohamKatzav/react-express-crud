@@ -3,8 +3,10 @@ const mongoose = require("mongoose");
 const Todo = require("../models/Todo");
 const dbName = "TodoDB";
 const PRIORITIES = ['low', 'medium', 'high'];
+const PROJECTS = ['Personal', 'Studio', 'Growth', 'Admin'];
 
 const randomPriority = () => PRIORITIES[Math.floor(Math.random() * PRIORITIES.length)];
+const randomProject = () => PROJECTS[Math.floor(Math.random() * PROJECTS.length)];
 
 const randomDueDate = () => {
   if (Math.random() < 0.35) {
@@ -41,9 +43,10 @@ async function fetchTodos(sub, amount) {
     try {
       const res = await fetch(`https://dummyjson.com/todos?limit=${amount}&skip=${skip}`);
       const documentsFromDummyjson = await res.json();
-      const todosArray = documentsFromDummyjson.todos.map
+        const todosArray = documentsFromDummyjson.todos.map
         ((x) => ({
           user_id: sub,
+          project: randomProject(),
           todo: x.todo,
           completed: x.completed,
           priority: randomPriority(),

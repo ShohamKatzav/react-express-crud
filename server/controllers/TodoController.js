@@ -1,5 +1,6 @@
 const { fetchTodos } = require("../config/mongodb");
 const Todo = require("../models/Todo");
+const { ensureProjectExists, normalizeProjectName } = require("../utils/projectHelpers");
 const PRIORITIES = ['low', 'medium', 'high'];
 
 const normalizePriority = (value) => {
@@ -44,6 +45,7 @@ const normalizeDueDate = (value) => {
 };
 
 const buildTodoPayload = (body = {}) => ({
+    project: normalizeProjectName(body.project),
     todo: String(body.value ?? body.todo ?? '').trim(),
     completed: Boolean(body.completed),
     priority: normalizePriority(body.priority),
@@ -55,6 +57,9 @@ const buildTodoUpdatePayload = (body = {}) => {
 
     if ('value' in body || 'todo' in body) {
         updatePayload.todo = String(body.value ?? body.todo ?? '').trim();
+    }
+    if ('project' in body) {
+        updatePayload.project = normalizeProjectName(body.project);
     }
     if ('completed' in body) {
         updatePayload.completed = Boolean(body.completed);
@@ -72,6 +77,8 @@ const buildTodoUpdatePayload = (body = {}) => {
 const FetchTodos = async (req, res) => {
     try {
         const todos = await fetchTodos(req.user.sub, parseInt(req.body.fetchAmount));
+        const projectNames = [...new Set(todos.map((todo) => normalizeProjectName(todo.project)).filter(Boolean))];
+        await Promise.all(projectNames.map((projectName) => ensureProjectExists(req.user.sub, projectName)));
         todos.length ? res.send(todos) : res.sendStatus(204);
     } catch (err) {
         console.error('Failed to retrieve todos:', err);
@@ -105,6 +112,7 @@ const CreateTodo = async (req, res) => {
         const count = await Todo.find({ user_id: req.user.sub }).count();
         if (count < 150) {
             const payload = buildTodoPayload(req.body);
+            await ensureProjectExists(req.user.sub, payload.project);
             const newDoc = await Todo.create({ user_id: req.user.sub, ...payload });
             res.send(newDoc);
         }
@@ -138,6 +146,8 @@ const ImportTodos = async (req, res) => {
         }
 
         const todosToInsert = sanitizedTodos.slice(0, availableSlots);
+        const projectNames = [...new Set(todosToInsert.map((todo) => todo.project).filter(Boolean))];
+        await Promise.all(projectNames.map((projectName) => ensureProjectExists(req.user.sub, projectName)));
         const insertedTodos = await Todo.insertMany(todosToInsert);
 
         return res.status(200).send({
@@ -164,6 +174,9 @@ const DeleteTodo = async (req, res) => {
 const EditText = async (req, res) => {
     try {
         const payload = buildTodoUpdatePayload(req.body);
+        if (payload.project) {
+            await ensureProjectExists(req.user.sub, payload.project);
+        }
         const updatedDoc = await Todo.findOneAndUpdate(
             { _id: req.body.id, user_id: req.user.sub },
             payload,
@@ -188,6 +201,23 @@ const EditStatus = async (req, res) => {
     }
     catch (err) {
         console.error('Failed to update complete for document:', err);
+        res.sendStatus(500);
+    }
+};
+
+const EditProject = async (req, res) => {
+    try {
+        const nextProject = normalizeProjectName(req.body.project);
+        await ensureProjectExists(req.user.sub, nextProject);
+        const updatedDoc = await Todo.findOneAndUpdate(
+            { _id: req.body.id, user_id: req.user.sub },
+            { project: nextProject },
+            { returnDocument: "after" }
+        );
+        res.send(updatedDoc);
+    }
+    catch (err) {
+        console.error('Failed to update project for document:', err);
         res.sendStatus(500);
     }
 };
@@ -269,6 +299,7 @@ module.exports = {
     ImportTodos,
     DeleteTodo,
     EditText,
+    EditProject,
     EditStatus,
     EditPriority,
     EditDueDate,

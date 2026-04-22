@@ -3,6 +3,7 @@ import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 
 const buildExportRows = (todos) =>
     todos.map((todo) => ({
+        project: todo.project || 'Personal',
         task: todo.todo,
         status: todo.completed ? 'done' : 'in focus',
         priority: todo.priority || 'medium',
@@ -27,8 +28,11 @@ function ExportTodosDialog({ notifyError, notifySuccess, todos }) {
             const worksheet = XLSX.utils.json_to_sheet(buildExportRows(todos));
 
             worksheet['!cols'] = [
+                { wch: 18 },
                 { wch: 42 },
                 { wch: 14 },
+                { wch: 14 },
+                { wch: 16 },
             ];
 
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Todos');

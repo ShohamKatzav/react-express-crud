@@ -3,6 +3,8 @@ export const PRIORITY_OPTIONS = [
     { value: 'medium', label: 'Medium' },
     { value: 'high', label: 'High' },
 ];
+export const DEFAULT_PROJECT = 'Personal';
+export const PROJECT_COLUMN_NAMES = ['project', 'workspace', 'bucket', 'group', 'team'];
 
 export const TODO_COLUMN_NAMES = ['todo', 'task', 'title', 'value', 'text', 'description', 'name'];
 export const STATUS_COLUMN_NAMES = ['completed', 'done', 'status'];
@@ -10,6 +12,10 @@ export const PRIORITY_COLUMN_NAMES = ['priority', 'importance', 'level'];
 export const DUE_DATE_COLUMN_NAMES = ['due date', 'due_date', 'duedate', 'due', 'deadline', 'date'];
 
 export const normalizeKey = (value) => String(value || '').trim().toLowerCase();
+export const normalizeProjectValue = (value) => {
+    const normalized = String(value || '').trim().replace(/\s+/g, ' ');
+    return normalized || DEFAULT_PROJECT;
+};
 
 export const getPriorityLabel = (value) =>
     PRIORITY_OPTIONS.find((option) => option.value === value)?.label || 'Medium';
@@ -62,6 +68,19 @@ export const parsePriorityValue = (value) => {
     }
 
     return { value: 'medium', valid: false, message: 'Priority should be low, medium, or high.' };
+};
+
+export const parseProjectValue = (value) => {
+    if (value === null || value === undefined || value === '') {
+        return { value: DEFAULT_PROJECT, valid: true };
+    }
+
+    const normalized = normalizeProjectValue(value);
+    if (!normalized) {
+        return { value: DEFAULT_PROJECT, valid: false, message: 'Project should not be empty.' };
+    }
+
+    return { value: normalized.slice(0, 40), valid: true };
 };
 
 const padDate = (value) => String(value).padStart(2, '0');
@@ -176,3 +195,41 @@ export const getDueDateState = (value) => {
 
     return 'upcoming';
 };
+
+const PROJECT_SWATCHES = [
+    { background: 'rgba(217, 103, 77, 0.14)', color: '#8d3f2e', borderColor: 'rgba(217, 103, 77, 0.22)' },
+    { background: 'rgba(63, 138, 105, 0.12)', color: '#295e46', borderColor: 'rgba(63, 138, 105, 0.22)' },
+    { background: 'rgba(216, 164, 61, 0.16)', color: '#7f5c14', borderColor: 'rgba(216, 164, 61, 0.24)' },
+    { background: 'rgba(43, 108, 176, 0.12)', color: '#244e80', borderColor: 'rgba(43, 108, 176, 0.22)' },
+    { background: 'rgba(119, 93, 208, 0.12)', color: '#4d3ca4', borderColor: 'rgba(119, 93, 208, 0.2)' },
+];
+
+export const getProjectTone = (project) => {
+    const normalized = normalizeProjectValue(project);
+    const index = normalized
+        .split('')
+        .reduce((total, char) => total + char.charCodeAt(0), 0) % PROJECT_SWATCHES.length;
+
+    return PROJECT_SWATCHES[index];
+};
+
+export const sortTodosByUrgency = (todos) =>
+    [...todos].sort((todoA, todoB) => {
+        const dueStateScore = { overdue: 0, today: 1, upcoming: 2, none: 3 };
+        const dateStateDiff =
+            dueStateScore[getDueDateState(todoA.dueDate || '')] - dueStateScore[getDueDateState(todoB.dueDate || '')];
+
+        if (dateStateDiff !== 0) {
+            return dateStateDiff;
+        }
+
+        const priorityScore = { high: 0, medium: 1, low: 2 };
+        const priorityDiff =
+            (priorityScore[todoA.priority || 'medium'] ?? 1) - (priorityScore[todoB.priority || 'medium'] ?? 1);
+
+        if (priorityDiff !== 0) {
+            return priorityDiff;
+        }
+
+        return String(todoA.todo || '').localeCompare(String(todoB.todo || ''));
+    });

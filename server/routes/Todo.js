@@ -10,6 +10,7 @@ const {
     ImportTodos,
     DeleteTodo,
     EditText,
+    EditProject,
     EditStatus,
     EditPriority,
     EditDueDate,
@@ -24,6 +25,7 @@ router.post("/api/v1/todo", guard.check(['create:todos']), CreateTodo);
 router.post("/api/v1/todo/import", guard.check(['create:todos']), ImportTodos);
 router.delete("/api/v1/todo", guard.check(['delete:todos']), DeleteTodo);
 router.put("/api/v1/todo/editText", guard.check(['update:todos']), EditText);
+router.put("/api/v1/todo/editProject", guard.check(['update:todos']), EditProject);
 router.put("/api/v1/todo/editStatus", guard.check(['update:todos']), EditStatus);
 router.put("/api/v1/todo/editPriority", guard.check(['update:todos']), EditPriority);
 router.put("/api/v1/todo/editDueDate", guard.check(['update:todos']), EditDueDate);

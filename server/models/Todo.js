@@ -6,6 +6,10 @@ const todoSchema = new Schema({
         type: String,
         required: true
     },
+    project: {
+        type: String,
+        default: 'Personal'
+    },
     todo: {
         type: String,
         required: true

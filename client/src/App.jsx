@@ -8,6 +8,7 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import Navbar from './components/navBar';
+import DashboardPage from './pages/dashboardPage';
 import ProfilePage from './pages/profilePage';
 import TodoListPage from './pages/todoListPage';
 import ContactPage from './pages/contactPage';
@@ -51,7 +52,8 @@ function Root() {
       <Navbar />
       <main className="app-shell__main">
         <Routes>
-          <Route path="/" element={<TodoListPage />} />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/workspace" element={<TodoListPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/about" element={<AboutPage />} />

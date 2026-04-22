@@ -6,9 +6,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import MenuItem from '@mui/material/MenuItem';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import { PRIORITY_OPTIONS } from '../utils/todoFields';
+import { DEFAULT_PROJECT, PRIORITY_OPTIONS } from '../utils/todoFields';
 
-function EditTodoDialog({ open, closeEditTodoDialog, handleEditDialogSubmit, params, setParams }) {
+function EditTodoDialog({ open, closeEditTodoDialog, handleEditDialogSubmit, params, projects, setParams }) {
     return (
         <Dialog fullWidth maxWidth="sm" onClose={closeEditTodoDialog} open={open}>
             <form onSubmit={handleEditDialogSubmit}>
@@ -27,6 +27,23 @@ function EditTodoDialog({ open, closeEditTodoDialog, handleEditDialogSubmit, par
                             }}
                             value={params.todo || ""}
                         />
+                        <TextField
+                            fullWidth
+                            helperText="Need another project? Create it from Manage Projects."
+                            label="Project"
+                            onChange={(e) => {
+                                const updatedParams = { ...params, project: e.target.value };
+                                setParams(updatedParams);
+                            }}
+                            select
+                            value={params.project || DEFAULT_PROJECT}
+                        >
+                            {(projects?.length ? projects : [{ name: DEFAULT_PROJECT }]).map((projectOption) => (
+                                <MenuItem key={projectOption._id || projectOption.name} value={projectOption.name}>
+                                    {projectOption.name}
+                                </MenuItem>
+                            ))}
+                        </TextField>
                         <TextField
                             fullWidth
                             label="Status"

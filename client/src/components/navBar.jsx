@@ -21,7 +21,8 @@ function Navbar() {
     const { isAuthenticated, isLoading } = useAuth0();
     const [mobileOpen, setMobileOpen] = useState(false);
     const navItems = [
-        { label: 'Home', path: '/' },
+        { label: 'Dashboard', path: '/' },
+        { label: 'Workspace', path: '/workspace' },
         { label: 'Contact', path: '/contact' },
         { label: 'About', path: '/about' },
     ];
