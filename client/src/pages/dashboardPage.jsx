@@ -31,6 +31,8 @@ const normalizeProjectRecord = (project) => ({
     isDefault: Boolean(project?.isDefault),
 });
 
+const getTodosFromResponse = (response) => Array.isArray(response.data) ? response.data : response.data?.data || [];
+
 function DashboardPage() {
     const navigate = useNavigate();
     const baseUrl = import.meta.env.VITE_APP_BASE_URL;
@@ -53,11 +55,11 @@ function DashboardPage() {
                 };
 
                 const [todoResponse, projectResponse] = await Promise.all([
-                    api.get(`/todo`, config),
+                    api.get(`/todo`, { ...config, params: { page: 1, limit: 150 } }),
                     api.get(`/projects`, config),
                 ]);
 
-                setTodos(todoResponse.data.map(normalizeTodoRecord));
+                setTodos(getTodosFromResponse(todoResponse).map(normalizeTodoRecord));
                 setProjects(projectResponse.data.map(normalizeProjectRecord));
             } catch (error) {
                 console.log(error.message);

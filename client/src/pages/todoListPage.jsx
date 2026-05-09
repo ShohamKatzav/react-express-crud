@@ -52,6 +52,9 @@ const normalizeProjectRecord = (project) => ({
     isDefault: Boolean(project?.isDefault),
 });
 
+const getTodosFromResponse = (response) => Array.isArray(response.data) ? response.data : response.data?.data || [];
+const buildOptimisticTodoId = () => `optimistic-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 function TodoListPage() {
     const baseUrl = import.meta.env.VITE_APP_BASE_URL;
     const apiRef = useGridApiRef();
@@ -113,11 +116,11 @@ function TodoListPage() {
             }
 
             const [todoResponse, projectResponse] = await Promise.all([
-                api.get(`/todo`, resolvedConfig),
+                api.get(`/todo`, { ...resolvedConfig, params: { page: 1, limit: 150 } }),
                 api.get(`/projects`, resolvedConfig),
             ]);
 
-            setDataToShow(todoResponse.data.map(normalizeTodoRecord));
+            setDataToShow(getTodosFromResponse(todoResponse).map(normalizeTodoRecord));
             setProjects(projectResponse.data.map(normalizeProjectRecord));
             return resolvedConfig;
         } catch (e) {
@@ -209,53 +212,96 @@ function TodoListPage() {
     };
 
     const cleanList = async () => {
+        const previousTodos = dataToShow;
+        const previousSelectedRows = selectedRows;
+        updateGridPage(0);
+        setDataToShow([]);
+        setSelectedRows([]);
+
         try {
             const response = await api.delete(`/cleanList`, config);
             if (response.status === 204) {
-                updateGridPage(0);
-                setDataToShow([]);
                 notifySuceess("The clean operation was completed successfully");
                 await refreshProjects(config);
             }
             else {
+                setDataToShow(previousTodos);
+                setSelectedRows(previousSelectedRows);
                 notifyError("Could not clean the list");
             }
         } catch (e) {
+            setDataToShow(previousTodos);
+            setSelectedRows(previousSelectedRows);
             console.log(e.message);
+            notifyError("Could not clean the list");
         }
     };
 
     const addTodo = async ({ completed, dueDate, priority, project, value }) => {
+        const optimisticId = buildOptimisticTodoId();
+        const optimisticTodo = normalizeTodoRecord({
+            _id: optimisticId,
+            todo: value,
+            project,
+            completed,
+            priority,
+            dueDate,
+        });
+
+        setTodoAdded(true);
+        setIsDataRendered(false);
+        setDataToShow((current) => [...current, optimisticTodo]);
+
         try {
             const response = await api.post(`/todo`, { value, completed, priority, dueDate, project }, config);
-            setTodoAdded(true);
-            setIsDataRendered(false);
-            setDataToShow((current) => [...current, normalizeTodoRecord(response.data)]);
+            setDataToShow((current) => current.map((todo) => (
+                todo._id === optimisticId ? normalizeTodoRecord(response.data) : todo
+            )));
             notifySuceess("Todo added successfully");
             await refreshProjects(config);
             return true;
         } catch (e) {
+            setDataToShow((current) => current.filter((todo) => todo._id !== optimisticId));
             if (e.response?.status === 409) {
                 notifyError("Max list size is 150");
                 return;
             }
 
             console.log(e.message);
+            notifyError("Could not add todo");
         }
         return false;
     };
 
     const importTodos = async (todos) => {
+        const optimisticTodos = todos.map((todo) => normalizeTodoRecord({
+            _id: buildOptimisticTodoId(),
+            todo: todo.value,
+            project: todo.project,
+            completed: todo.completed,
+            priority: todo.priority,
+            dueDate: todo.dueDate,
+        }));
+
+        if (optimisticTodos.length) {
+            setDataToShow((current) => [...current, ...optimisticTodos]);
+            setTodoAdded(true);
+            setIsDataRendered(false);
+        }
+
         try {
             const response = await api.post(`/todo/import`, { todos }, config);
             const insertedTodos = response.data?.inserted?.map(normalizeTodoRecord) || [];
             const skippedTodos = response.data?.skipped || 0;
 
             if (insertedTodos.length) {
-                setDataToShow((current) => [...current, ...insertedTodos]);
-                setTodoAdded(true);
-                setIsDataRendered(false);
+                setDataToShow((current) => [
+                    ...current.filter((todo) => !optimisticTodos.some((optimisticTodo) => optimisticTodo._id === todo._id)),
+                    ...insertedTodos,
+                ]);
                 await refreshProjects(config);
+            } else {
+                setDataToShow((current) => current.filter((todo) => !optimisticTodos.some((optimisticTodo) => optimisticTodo._id === todo._id)));
             }
 
             if (insertedTodos.length && skippedTodos) {
@@ -270,6 +316,7 @@ function TodoListPage() {
 
             notifyWarning("No todos were imported");
         } catch (e) {
+            setDataToShow((current) => current.filter((todo) => !optimisticTodos.some((optimisticTodo) => optimisticTodo._id === todo._id)));
             if (e.response?.status === 409) {
                 notifyError("Max list size is 150");
                 return false;
@@ -351,13 +398,24 @@ function TodoListPage() {
     };
 
     const deleteTodo = async (todo_Id) => {
+        const todoToDelete = dataToShow.find((todo) => todo._id === todo_Id);
+        const wasSelected = selectedRows.includes(todo_Id);
+        setDataToShow((current) => current.filter((item) => item._id !== todo_Id));
+        setSelectedRows((current) => current.filter((id) => id !== todo_Id));
+
         try {
             await api.delete(`/todo`, { headers: { Authorization: config.headers.Authorization }, data: { id: todo_Id } });
-            setDataToShow((current) => current.filter((item) => item._id !== todo_Id));
             notifySuceess("Todo deleted successfully");
             await refreshProjects(config);
         } catch (e) {
+            if (todoToDelete) {
+                setDataToShow((current) => current.some((todo) => todo._id === todo_Id) ? current : [...current, todoToDelete]);
+            }
+            if (wasSelected) {
+                setSelectedRows((current) => current.includes(todo_Id) ? current : [...current, todo_Id]);
+            }
             console.log(e.message);
+            notifyError("Could not delete todo");
         }
     };
 
@@ -385,8 +443,7 @@ function TodoListPage() {
     };
     const handleEditDialogSubmit = async (e) => {
         e.preventDefault();
-        const index = dataToShow.findIndex((todo) => todo._id === params.id);
-        const wasUpdated = await sendPutRequestAndUpdateState(params, index, "/todo/editText");
+        const wasUpdated = await sendPutRequestAndUpdateState(params, "/todo/editText");
         if (wasUpdated) {
             notifySuceess("Todo updated successfully");
             setIsEditDialogOpen(false);
@@ -409,9 +466,13 @@ function TodoListPage() {
         openEditTodoDialog();
     };
     const editStatus = (todo_Id) => {
-        const index = dataToShow.findIndex((todo) => todo._id === todo_Id);
-        const nextParams = { id: todo_Id, completed: !dataToShow.find((todo) => todo._id === todo_Id).completed };
-        sendPutRequestAndUpdateState(nextParams, index, "/todo/editStatus").then((wasUpdated) => {
+        const todoToUpdate = dataToShow.find((todo) => todo._id === todo_Id);
+        if (!todoToUpdate) {
+            return;
+        }
+
+        const nextParams = { id: todo_Id, completed: !todoToUpdate.completed };
+        sendPutRequestAndUpdateState(nextParams, "/todo/editStatus").then((wasUpdated) => {
             if (wasUpdated) {
                 notifySuceess("Todo status changed");
             } else {
@@ -420,14 +481,13 @@ function TodoListPage() {
         });
     };
     const editPriority = (todo_Id, nextPriority) => {
-        const index = dataToShow.findIndex((todo) => todo._id === todo_Id);
         const currentPriority = dataToShow.find((todo) => todo._id === todo_Id)?.priority || 'medium';
 
         if (currentPriority === nextPriority) {
             return Promise.resolve(true);
         }
 
-        return sendPutRequestAndUpdateState({ id: todo_Id, priority: nextPriority }, index, "/todo/editPriority").then((wasUpdated) => {
+        return sendPutRequestAndUpdateState({ id: todo_Id, priority: nextPriority }, "/todo/editPriority").then((wasUpdated) => {
             if (wasUpdated) {
                 notifySuceess(`Priority changed to ${nextPriority}`);
             } else {
@@ -437,14 +497,13 @@ function TodoListPage() {
         });
     };
     const editDueDate = (todo_Id, nextDueDate) => {
-        const index = dataToShow.findIndex((todo) => todo._id === todo_Id);
         const currentDueDate = dataToShow.find((todo) => todo._id === todo_Id)?.dueDate || '';
 
         if (currentDueDate === nextDueDate) {
             return Promise.resolve(true);
         }
 
-        return sendPutRequestAndUpdateState({ id: todo_Id, dueDate: nextDueDate }, index, "/todo/editDueDate").then((wasUpdated) => {
+        return sendPutRequestAndUpdateState({ id: todo_Id, dueDate: nextDueDate }, "/todo/editDueDate").then((wasUpdated) => {
             if (wasUpdated) {
                 notifySuceess(nextDueDate ? "Due date updated" : "Due date cleared");
             } else {
@@ -454,14 +513,13 @@ function TodoListPage() {
         });
     };
     const editProject = (todo_Id, nextProject) => {
-        const index = dataToShow.findIndex((todo) => todo._id === todo_Id);
         const currentProject = dataToShow.find((todo) => todo._id === todo_Id)?.project || DEFAULT_PROJECT;
 
         if (currentProject === nextProject) {
             return Promise.resolve(true);
         }
 
-        return sendPutRequestAndUpdateState({ id: todo_Id, project: nextProject }, index, "/todo/editProject").then(async (wasUpdated) => {
+        return sendPutRequestAndUpdateState({ id: todo_Id, project: nextProject }, "/todo/editProject").then(async (wasUpdated) => {
             if (wasUpdated) {
                 notifySuceess(`Task moved to ${nextProject}`);
                 await refreshProjects(config);
@@ -472,65 +530,88 @@ function TodoListPage() {
         });
     };
 
-    const sendPutRequestAndUpdateState = async (requestParams, index, endPoint) => {
+    const sendPutRequestAndUpdateState = async (requestParams, endPoint) => {
+        const previousTodo = dataToShow.find((todo) => todo._id === requestParams.id);
+        if (!previousTodo) {
+            return false;
+        }
+
+        setDataToShow((current) => current.map((todo) => (
+            todo._id === requestParams.id
+                ? normalizeTodoRecord({ ...todo, ...requestParams })
+                : todo
+        )));
+
         try {
             const response = await api.put(endPoint, requestParams, config);
             if (!response.data) {
+                setDataToShow((current) => current.map((todo) => (
+                    todo._id === requestParams.id ? previousTodo : todo
+                )));
                 return false;
             }
-            setDataToShow((current) => {
-                const newData = [...current];
-                newData[index] = normalizeTodoRecord(response.data);
-                return newData;
-            });
+            setDataToShow((current) => current.map((todo) => (
+                todo._id === requestParams.id ? normalizeTodoRecord(response.data) : todo
+            )));
             return true;
         } catch (e) {
+            setDataToShow((current) => current.map((todo) => (
+                todo._id === requestParams.id ? previousTodo : todo
+            )));
             console.log(e.message);
         }
         return false;
     };
 
     const deleteSelected = async () => {
+        const idsToDelete = [...selectedRows];
+        const deletedTodos = dataToShow.filter((todo) => idsToDelete.includes(todo._id));
+        setDataToShow((current) => current.filter((todo) => !idsToDelete.includes(todo._id)));
+        setSelectedRows([]);
+
         try {
             await api.delete(`/delete-selected`, {
-                headers: { Authorization: config.headers.Authorization }, data: { ids: selectedRows }
+                headers: { Authorization: config.headers.Authorization }, data: { ids: idsToDelete }
             });
-            setDataToShow((current) => current.filter((todo) => !selectedRows.includes(todo._id)));
-            setSelectedRows([]);
             notifySuceess("Todos deleted successfully");
             await refreshProjects(config);
         } catch (e) {
+            setDataToShow((current) => {
+                const currentIds = new Set(current.map((todo) => todo._id));
+                return [...current, ...deletedTodos.filter((todo) => !currentIds.has(todo._id))];
+            });
+            setSelectedRows(idsToDelete);
             console.log(e.message);
+            notifyError("Could not delete selected todos");
         }
     };
     const changeSelectedStatus = async (newStatus) => {
-        const indexes = [];
-        for (let i = 0; i < selectedRows.length; i++) {
-            const index = dataToShow.findIndex((todo) => selectedRows[i] === todo._id);
-            if (index !== -1 && dataToShow[index].completed !== newStatus) {
-                indexes.push(index);
-            }
-        }
-        if (indexes.length === 0) {
+        const idsToUpdate = [...selectedRows];
+        const previousTodos = dataToShow.filter((todo) => idsToUpdate.includes(todo._id));
+        const todosToUpdate = previousTodos.filter((todo) => todo.completed !== newStatus);
+
+        if (todosToUpdate.length === 0) {
             notifyWarning("Nothing to change");
             return;
         }
 
-        const requestParams = { ids: selectedRows, completed: newStatus };
+        const requestParams = { ids: idsToUpdate, completed: newStatus };
+        setDataToShow((current) => current.map((todo) => (
+            idsToUpdate.includes(todo._id) ? normalizeTodoRecord({ ...todo, completed: newStatus }) : todo
+        )));
+
         try {
             const response = await api.put(`/change-selected-status`, requestParams, config);
             const updatedTodos = response.data.map(normalizeTodoRecord);
             setDataToShow((current) => {
-                const newData = [...current];
-                indexes.forEach((index) => {
-                    newData[index] = updatedTodos.find((todo) => todo._id === newData[index]._id);
-                });
-                return newData;
+                return current.map((todo) => updatedTodos.find((updatedTodo) => updatedTodo._id === todo._id) || todo);
             });
+            notifySuceess("Todos status changed");
         } catch (e) {
+            setDataToShow((current) => current.map((todo) => previousTodos.find((previousTodo) => previousTodo._id === todo._id) || todo));
             console.log(e.message);
+            notifyError("Could not change selected todos");
         }
-        notifySuceess("Todos status changed");
     };
 
     if (isLoading) {

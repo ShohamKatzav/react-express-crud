@@ -2,6 +2,26 @@ const { fetchTodos } = require("../config/mongodb");
 const Todo = require("../models/Todo");
 const { ensureProjectExists, normalizeProjectName } = require("../utils/projectHelpers");
 const PRIORITIES = ['low', 'medium', 'high'];
+const DEFAULT_TODO_PAGE = 1;
+const DEFAULT_TODO_LIMIT = 25;
+const MAX_TODO_LIMIT = 150;
+
+const parsePositiveInteger = (value, fallback) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const getTodoPagination = (query = {}) => {
+    const page = parsePositiveInteger(query.page, DEFAULT_TODO_PAGE);
+    const requestedLimit = parsePositiveInteger(query.limit ?? query.pageSize, DEFAULT_TODO_LIMIT);
+    const limit = Math.min(requestedLimit, MAX_TODO_LIMIT);
+
+    return {
+        page,
+        limit,
+        skip: (page - 1) * limit,
+    };
+};
 
 const normalizePriority = (value) => {
     const normalized = String(value || '').trim().toLowerCase();
@@ -99,8 +119,22 @@ const CleanList = async (req, res) => {
 
 const GetTodos = async (req, res) => {
     try {
-        const todos = await Todo.find({ user_id: req.user.sub }).exec();
-        res.send(todos);
+        const { page, limit, skip } = getTodoPagination(req.query);
+        const userQuery = { user_id: req.user.sub };
+        const [todos, total] = await Promise.all([
+            Todo.find(userQuery).sort({ _id: 1 }).skip(skip).limit(limit).exec(),
+            Todo.countDocuments(userQuery),
+        ]);
+
+        res.send({
+            data: todos,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        });
     } catch (err) {
         console.error('Failed to retrieve todos:', err);
         res.status(500).send({ message: 'Unable to retrieve todos' });
@@ -137,7 +171,7 @@ const ImportTodos = async (req, res) => {
             return res.status(400).send({ message: 'No valid todos were provided.' });
         }
 
-        const count = await Todo.find({ user_id: req.user.sub }).count();
+        const count = await Todo.countDocuments({ user_id: req.user.sub });
         const availableSlots = Math.max(150 - count, 0);
 
         if (availableSlots === 0) {

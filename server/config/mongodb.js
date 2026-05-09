@@ -38,7 +38,7 @@ async function connectDB() {
 async function fetchTodos(sub, amount) {
   const TOTAL = 150;
   const skip = Math.floor(Math.random() * (TOTAL - amount));
-  const count = await Todo.find({ user_id: sub }).count();
+  const count = await Todo.countDocuments({ user_id: sub });
   if (count + amount <= 150) {
     try {
       const res = await fetch(`https://dummyjson.com/todos?limit=${amount}&skip=${skip}`);

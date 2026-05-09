@@ -27,9 +27,6 @@ const todoSchema = new Schema({
         type: String,
         default: ''
     }
-}, {
-    capped: { size: 1024 },
-    autoCreate: false
 });
 
 module.exports = mongoose.model('Todo', todoSchema);
